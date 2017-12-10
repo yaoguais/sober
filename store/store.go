@@ -1,137 +1,72 @@
 package store
 
 import (
-	"context"
 	"errors"
-	"fmt"
-	"github.com/coreos/etcd/clientv3"
-	"github.com/yaoguais/sober/authorize"
 	"regexp"
 	"strings"
-	"time"
 )
 
-type Etcd struct {
-	kv      *clientv3.Client
-	root    string
-	rule    *regexp.Regexp
-	svcPath string
-	c       chan struct{}
+type EventType int
+
+const (
+	EventTypePut    = 0
+	EventTypeDelete = 1
+)
+
+var (
+	ErrIllegalPath = errors.New("illegal path")
+)
+
+type Event struct {
+	Type  EventType
+	Key   string
+	Value string
 }
 
-func NewEtcd(root, rule, svcPath string, options clientv3.Config) (*Etcd, error) {
-	reg, err := regexp.Compile(rule)
-	if err != nil {
-		return nil, err
-	}
-
-	kv, err := clientv3.New(options)
-	if err != nil {
-		return nil, err
-	}
-
-	s := &Etcd{
-		root:    root,
-		rule:    reg,
-		svcPath: svcPath,
-		kv:      kv,
-		c:       make(chan struct{}),
-	}
-
-	if err := s.load(); err != nil {
-		return nil, err
-	}
-
-	if err := s.watch(); err != nil {
-		return nil, err
-	}
-
-	return s, nil
+type Store interface {
+	KV(path string) (map[string]string, error)
+	Watch(path string) (chan []Event, chan error)
+	Close() error
 }
 
-func (s *Etcd) load() error {
-	resp, err := s.kv.Get(
-		context.Background(),
-		s.authorizePath(),
-		clientv3.WithPrefix())
-	if err != nil {
-		return err
-	}
-
-	for _, v := range resp.Kvs {
-		auth := authorize.Auth{
-			Token: string(v.Key),
-			Path:  string(v.Value),
-		}
-		authorize.Add(auth)
-	}
-
-	return nil
+type common struct {
+	root string
+	rule *regexp.Regexp
 }
 
-func (s *Etcd) watch() error {
-	go func() {
-		init := 1 * time.Second
-		max := time.Minute
-		sleep := init
-
-	retry:
-		c := s.kv.Watch(
-			context.Background(),
-			s.authorizePath(),
-			clientv3.WithPrefix())
-
-		for {
-			select {
-			case <-s.c:
-				return
-			case resp := <-c:
-				if resp.Err() != nil {
-					sleep *= 2
-					if sleep > max {
-						sleep = max
-					}
-					time.Sleep(sleep)
-					goto retry
-				}
-
-				sleep = init
-
-				for _, e := range resp.Events {
-					fmt.Printf("e: %v\n", *e)
-					auth := authorize.Auth{
-						Token: string(e.Kv.Key),
-						Path:  string(e.Kv.Value),
-					}
-					switch e.Type {
-					case clientv3.EventTypePut:
-						authorize.Add(auth)
-					case clientv3.EventTypeDelete:
-						authorize.Remove(auth)
-					}
-				}
-			}
-		}
-	}()
-
-	return nil
+func (c *common) SetRoot(root string) *common {
+	c.root = strings.ToLower(root)
+	return c
 }
 
-func (s *Etcd) path(path string) string {
-	return strings.ToLower(s.root + path)
+func (c *common) SetRule(rule *regexp.Regexp) *common {
+	c.rule = rule
+	return c
 }
 
-func (s *Etcd) authorizePath() string {
-	return s.path(s.svcPath + "/authorize")
+func (c *common) ValidPath(path string) bool {
+	return c.rule.Match([]byte(path))
 }
 
-func (s *Etcd) Close() error {
-	if s.c == nil {
-		return errors.New("close twice")
-	}
+func (c *common) realPath(path string) string {
+	return c.root + strings.ToLower(path)
+}
 
-	close(s.c)
-	s.c = nil
+func (c *common) orignalPath(path string) string {
+	return path[len(c.root):]
+}
 
+func (c *common) KV(path string) (map[string]string, error) {
+	panic("abstract method")
+	return nil, nil
+}
+
+func (c *common) Watch(path string) (chan []Event, chan error) {
+	panic("abstract method")
+	return nil, nil
+}
+
+func (c *common) Close() error {
+	panic("abstract method")
 	return nil
 }

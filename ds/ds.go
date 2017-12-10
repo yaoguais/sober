@@ -30,6 +30,6 @@ func Provider(args Args) (DataSource, error) {
 	case "file":
 		return NewFile(path.Join(m.Host, m.Path))
 	default:
-		return nil, fmt.Errorf(`illege datasource "%s"`, m.Scheme)
+		return nil, fmt.Errorf(`illegal datasource "%s"`, m.Scheme)
 	}
 }

@@ -1,6 +1,7 @@
 package authorize
 
 import (
+	"github.com/yaoguais/sober/store"
 	"strings"
 	"sync"
 )
@@ -10,7 +11,9 @@ type Auth struct {
 	Path  string
 }
 
-var tokens sync.Map
+var (
+	tokens sync.Map
+)
 
 func Add(auth Auth) {
 	tokens.Store(auth.Token, auth)
@@ -42,4 +45,44 @@ func Valid(check Auth) bool {
 		vv := v.(Auth)
 		return strings.HasPrefix(strings.ToLower(vv.Path), strings.ToLower(check.Path))
 	}
+}
+
+func Start(s store.Store, basePath string) error {
+	path := basePath + "/authorize"
+	preLen := len(basePath) + 1
+
+	kv, err := s.KV(path)
+	if err != nil {
+		return err
+	}
+
+	for k, v := range kv {
+		auth := Auth{
+			Token: k[preLen:],
+			Path:  v,
+		}
+		Add(auth)
+	}
+
+	evtC, errC := s.Watch(path)
+	go func() {
+		select {
+		case <-errC:
+		case evts := <-evtC:
+			for _, e := range evts {
+				auth := Auth{
+					Token: string(e.Key),
+					Path:  string(e.Value),
+				}
+				switch e.Type {
+				case store.EventTypePut:
+					Add(auth)
+				case store.EventTypeDelete:
+					Remove(auth)
+				}
+			}
+		}
+	}()
+
+	return nil
 }

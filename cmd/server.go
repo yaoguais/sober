@@ -4,9 +4,11 @@ import (
 	"flag"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/sirupsen/logrus"
+	"github.com/yaoguais/sober/authorize"
 	"github.com/yaoguais/sober/store"
 	"os"
 	"os/signal"
+	"regexp"
 	"strings"
 	"syscall"
 	"time"
@@ -28,16 +30,40 @@ func init() {
 	flag.StringVar(&rule, "rule", "^(\\/[a-zA-Z0-9_-]+){4,}$", "root validate rule")
 	flag.StringVar(&etcd, "etcd", "127.0.0.1:2379", "etcd addresse 127.0.0.1:2379,127.0.0.1:2381")
 	flag.BoolVar(&debug, "debug", false, "enable debug")
+	flag.Parse()
 }
 
 func main() {
-	etcdOpts := clientv3.Config{
+	var stor store.Store
+
+	opts := clientv3.Config{
 		Endpoints:   strings.Split(etcd, ","),
 		DialTimeout: 5 * time.Second,
 	}
-	store, err := store.NewEtcd(root, rule, path, etcdOpts)
+
+	kv, err := clientv3.New(opts)
 	if err != nil {
-		logrus.WithError(err).Error("create store")
+		logrus.WithError(err).Error("create ectd")
+		os.Exit(1)
+	}
+
+	s, err := store.NewEtcd(kv)
+	if err != nil {
+		logrus.WithError(err).Error("create etcd store")
+		os.Exit(1)
+	}
+
+	rule, err := regexp.Compile(rule)
+	if err != nil {
+		logrus.WithError(err).Debug("illegal rule")
+		os.Exit(1)
+	}
+
+	stor = s.SetRoot(root).SetRule(rule)
+
+	err = authorize.Start(stor, path)
+	if err != nil {
+		logrus.WithError(err).Error("start authorize")
 		os.Exit(1)
 	}
 
@@ -49,7 +75,7 @@ func main() {
 	go func() {
 		sig := <-sigs
 		logrus.WithField("signal", sig).Info("receive signal")
-		store.Close()
+		stor.Close()
 		done <- struct{}{}
 	}()
 

@@ -75,7 +75,7 @@ func addToJSON(root interface{}, kv map[string]string, key, val string) error {
 			}
 			p = real[j]
 		default:
-			return fmt.Errorf("illege type %T 1", p)
+			return fmt.Errorf("illegal type %T 1", p)
 		}
 	}
 
@@ -89,7 +89,7 @@ func addToJSON(root interface{}, kv map[string]string, key, val string) error {
 		}
 		p.(Array)[idx] = val
 	default:
-		return fmt.Errorf("illege type %T 2", p)
+		return fmt.Errorf("illegal type %T 2", p)
 	}
 
 	return nil

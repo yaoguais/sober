@@ -23,7 +23,7 @@ func Provider(output string) (Puter, error) {
 	case "file":
 		return NewFileOutput(path.Join(m.Host, m.Path))
 	default:
-		return nil, fmt.Errorf(`illege output "%s"`, m.Scheme)
+		return nil, fmt.Errorf(`illegal output "%s"`, m.Scheme)
 	}
 }
 

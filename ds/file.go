@@ -64,7 +64,7 @@ func (f *File) Get(key string) (string, error) {
 	defer f.RUnlock()
 
 	if !validKey.Match([]byte(key)) {
-		return "", errors.New("illege key")
+		return "", errors.New("illegal key")
 	}
 
 	section := ""

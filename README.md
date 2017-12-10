@@ -4,6 +4,13 @@ Configuration Center for Applications.
 
 ## Modules
 
+Server:
+- watch store changes and send them to agent
+
+Agent:
+- read configurations from data source and save them to outputs
+
+
 Store:
 
 - [x] Etcd
@@ -13,11 +20,7 @@ Store:
 DataSource:
 
 - [x] gRPC
-- [x] file
-
-Template:
-
-- [x] ini file
+- [x] .ini file
 
 Output:
 

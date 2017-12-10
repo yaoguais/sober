@@ -1,7 +1,6 @@
 package authorize
 
 import (
-	"fmt"
 	"github.com/sirupsen/logrus"
 	"github.com/yaoguais/sober/store"
 	"strings"
@@ -66,7 +65,6 @@ func Start(s store.Store, basePath string) error {
 		case err := <-errC:
 			logrus.WithError(err).Error("authorize watch")
 		case e := <-evtC:
-			fmt.Printf("e:%v\n", e)
 			auth := Auth{
 				Token: string(e.Key)[1:],
 				Path:  string(e.Value),

@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/sirupsen/logrus"
 	soberetry "github.com/yaoguais/sober/retry"
@@ -95,7 +94,6 @@ func (s *Etcd) Watch(path string) (chan Event, chan error) {
 						Key:   k,
 						Value: string(e.Kv.Value),
 					}
-					fmt.Printf("before append %v\n", evt)
 
 					eventC <- evt
 				}

@@ -2,7 +2,6 @@ package output
 
 import (
 	"errors"
-	"fmt"
 	"github.com/asaskevich/govalidator"
 )
 
@@ -17,8 +16,6 @@ func (*Stdout) Put(data []byte) error {
 	if !govalidator.IsJSON(string(data)) {
 		return errors.New("illegal json")
 	}
-
-	fmt.Println(string(data))
 
 	return nil
 }

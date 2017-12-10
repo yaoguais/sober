@@ -3,8 +3,8 @@ package ds
 import (
 	"errors"
 	"github.com/sirupsen/logrus"
-	"github.com/yaoguais/sober"
 	"github.com/yaoguais/sober/client"
+	soberini "github.com/yaoguais/sober/ini"
 	"github.com/yaoguais/sober/kvpb"
 	"google.golang.org/grpc"
 	"strings"
@@ -21,9 +21,7 @@ type GRPC struct {
 
 func NewGRPC(addr, token, root string) (*GRPC, error) {
 	kv := client.NewKV(token, root)
-	conn, err := grpc.Dial(addr,
-		grpc.WithInsecure(),
-		grpc.WithPerRPCCredentials(kv))
+	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
@@ -31,26 +29,20 @@ func NewGRPC(addr, token, root string) (*GRPC, error) {
 	kvc := kvpb.NewKVClient(conn)
 	kv.SetKVC(kvc)
 
-	m, err := kv.Get(root)
+	g := &GRPC{
+		kv:   kv,
+		root: root,
+		done: make(chan struct{}),
+	}
+
+	data, err := g.load()
 	if err != nil {
 		return nil, err
 	}
 
-	logrus.WithField("kv", m).Debug("ds fetch")
+	g.data = data
 
-	data := make(map[string]string)
-	for k, v := range m {
-		k := strings.TrimLeft(k, "/")
-		k = strings.Replace(k, "/", ".", -1)
-		data[k] = v
-	}
-
-	return &GRPC{
-		kv:   kv,
-		root: root,
-		data: data,
-		done: make(chan struct{}),
-	}, nil
+	return g, nil
 }
 
 func (g *GRPC) Get(key string) (string, error) {
@@ -80,7 +72,7 @@ func (g *GRPC) JSON() ([]byte, error) {
 		return nil, errors.New("empty data")
 	}
 
-	return sober.IniToPrettyJSON(g.data)
+	return soberini.IniToPrettyJSON(g.data)
 }
 
 func (g *GRPC) Watch() (chan struct{}, chan error) {
@@ -95,8 +87,16 @@ func (g *GRPC) Watch() (chan struct{}, chan error) {
 				g.kv.Cancel()
 				return
 			case e := <-evtC:
-				c <- struct{}{}
-				logrus.WithField("event", e).Debug("ds event")
+				data, err := g.load()
+				if err != nil {
+					errC <- err
+				} else {
+					g.Lock()
+					g.data = data
+					g.Unlock()
+					c <- struct{}{}
+					logrus.WithField("event", e).Debug("ds event")
+				}
 			}
 		}
 	}()
@@ -113,4 +113,22 @@ func (g *GRPC) Close() error {
 	g.done = nil
 
 	return nil
+}
+
+func (g *GRPC) load() (map[string]string, error) {
+	m, err := g.kv.Get(g.root)
+	if err != nil {
+		return nil, err
+	}
+
+	logrus.WithField("kv", m).Debug("ds load")
+
+	data := make(map[string]string)
+	for k, v := range m {
+		k := strings.TrimLeft(k, "/")
+		k = strings.Replace(k, "/", ".", -1)
+		data[k] = v
+	}
+
+	return data, nil
 }

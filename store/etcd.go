@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/coreos/etcd/clientv3"
-	"github.com/yaoguais/sober"
+	"github.com/sirupsen/logrus"
+	soberetry "github.com/yaoguais/sober/retry"
 )
 
 type Etcd struct {
@@ -44,13 +45,14 @@ func (s *Etcd) KV(path string) (map[string]string, error) {
 	return kv, nil
 }
 
-func (s *Etcd) Watch(path string) (chan []Event, chan error) {
+func (s *Etcd) Watch(path string) (chan Event, chan error) {
 	errC := make(chan error, 1)
 	realPath := s.realPath(path)
-	retry := sober.NewRetry(1, 60)
-	eventC := make(chan []Event, 10)
+	retry := soberetry.New(1, 60)
+	eventC := make(chan Event, 10)
+	pathLen := len(path)
 
-	fmt.Printf("realPath:%v\n", realPath)
+	logrus.WithField("path", realPath).Debug("etcd watch")
 
 	go func() {
 	try:
@@ -73,11 +75,10 @@ func (s *Etcd) Watch(path string) (chan []Event, chan error) {
 
 				retry.Reset()
 
-				fmt.Printf("events:%v\n", resp.Events)
-
-				events := make([]Event, len(resp.Events))
 				for _, e := range resp.Events {
-					k := s.orignalPath(string(e.Kv.Key))
+					logrus.WithField("event", e).Debug("etcd event")
+
+					k := s.orignalPath(string(e.Kv.Key))[pathLen:]
 					if k == "" {
 						continue
 					}
@@ -94,10 +95,11 @@ func (s *Etcd) Watch(path string) (chan []Event, chan error) {
 						Key:   k,
 						Value: string(e.Kv.Value),
 					}
-					events = append(events, evt)
+					fmt.Printf("before append %v\n", evt)
+
+					eventC <- evt
 				}
 
-				eventC <- events
 			}
 		}
 	}()

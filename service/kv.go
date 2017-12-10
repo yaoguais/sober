@@ -8,10 +8,8 @@ import (
 	"github.com/yaoguais/sober/store"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 	"regexp"
-	"strings"
 )
 
 var (
@@ -72,11 +70,11 @@ func (o *kv) Watch(req *kvpb.WatchRequest, ws kvpb.KV_WatchServer) error {
 			Type: e.Type,
 		}
 		if err := ws.Send(evt); err != nil {
-			logrus.WithField("client", c).WithError(err).Error("watch event")
+			logrus.WithField("client", c).WithError(err).Error("watch")
 			return err
 		}
 
-		logrus.WithField("client", c).WithField("event", e).Error("watch")
+		logrus.WithField("client", c).WithField("event", e).Debug("watch")
 	}
 
 	return nil

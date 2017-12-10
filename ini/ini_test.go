@@ -1,4 +1,4 @@
-package sober
+package ini
 
 import (
 	"github.com/json-iterator/go"

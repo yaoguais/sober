@@ -20,7 +20,7 @@ type Event struct {
 
 type Store interface {
 	KV(path string) (map[string]string, error)
-	Watch(path string) (chan []Event, chan error)
+	Watch(path string) (chan Event, chan error)
 	Close() error
 }
 
@@ -45,7 +45,7 @@ func (c *common) KV(path string) (map[string]string, error) {
 	return nil, nil
 }
 
-func (c *common) Watch(path string) (chan []Event, chan error) {
+func (c *common) Watch(path string) (chan Event, chan error) {
 	panic("abstract method")
 	return nil, nil
 }

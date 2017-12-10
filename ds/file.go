@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/djherbis/times"
 	"github.com/go-ini/ini"
-	"github.com/yaoguais/sober"
+	soberini "github.com/yaoguais/sober/ini"
 	"strings"
 	"sync"
 	"time"
@@ -87,7 +87,7 @@ func (f *File) JSON() ([]byte, error) {
 		return nil, errors.New("empty data")
 	}
 
-	return sober.IniToPrettyJSON(kv)
+	return soberini.IniToPrettyJSON(kv)
 }
 
 func (f *File) Watch() (chan struct{}, chan error) {

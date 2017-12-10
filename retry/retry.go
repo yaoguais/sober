@@ -1,25 +1,25 @@
-package sober
+package retry
 
 import (
 	"time"
 )
 
-type Retry struct {
+type retry struct {
 	start   time.Duration
 	current time.Duration
 	max     time.Duration
 	c       chan struct{}
 }
 
-func NewRetry(start, max int) *Retry {
-	return &Retry{
+func New(start, max int) *retry {
+	return &retry{
 		start:   time.Duration(start) * time.Second,
 		current: time.Duration(start) * time.Second,
 		max:     time.Duration(max) * time.Second,
 	}
 }
 
-func (r *Retry) Wait() {
+func (r *retry) Wait() {
 	if r.c == nil {
 		r.c = make(chan struct{})
 	}
@@ -43,11 +43,11 @@ func (r *Retry) Wait() {
 	}
 }
 
-func (r *Retry) Reset() {
+func (r *retry) Reset() {
 	r.current = r.start
 }
 
-func (r *Retry) Cancel() {
+func (r *retry) Cancel() {
 	if r.c != nil {
 		close(r.c)
 		r.c = nil

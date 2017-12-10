@@ -1,8 +1,8 @@
 package client
 
 import (
-	"github.com/yaoguais/sober"
 	"github.com/yaoguais/sober/kvpb"
+	soberetry "github.com/yaoguais/sober/retry"
 	"golang.org/x/net/context"
 	"io"
 )
@@ -46,7 +46,7 @@ func (o *KV) Watch(path string) (chan Event, chan error) {
 	c := make(chan Event)
 	errC := make(chan error)
 
-	retry := sober.NewRetry(1, 60)
+	retry := soberetry.New(1, 60)
 
 	go func() {
 		req := &kvpb.WatchRequest{

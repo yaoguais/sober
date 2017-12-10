@@ -43,6 +43,7 @@ func Register(c *client) {
 		cs = v.([]*client)
 	}
 	cs = append(cs, c)
+	clients.Store(c.path, cs)
 }
 
 func UnRegister(c *client) {
@@ -63,10 +64,11 @@ func UnRegister(c *client) {
 func Dispatch(s store.Store) {
 	evtC, errC := s.Watch("")
 
-	select {
-	case <-errC:
-	case evts := <-evtC:
-		for _, e := range evts {
+	for {
+		select {
+		case err := <-errC:
+			logrus.WithError(err).Error("dispatcher watch")
+		case e := <-evtC:
 			logrus.WithField("event", e).Debug("dispatcher")
 
 			clients.Range(func(key, val interface{}) bool {

@@ -6,28 +6,28 @@ Configuration Center for Applications.
 
 Store:
 
-- [ x ] Etcd
-- [   ] ZooKeeper
-- [   ] Consul
+- [x] Etcd
+- [ ] ZooKeeper
+- [ ] Consul
 
 DataSource:
 
-- [ x ] gRPC
-- [ x ] file
+- [x] gRPC
+- [x] file
 
 Template:
 
-- [ x ] ini file
+- [x] ini file
 
 Output:
 
-- [ x ] json file
-- [ x ] stdout
-- [   ] shared memory
+- [x] json file
+- [x] stdout
+- [ ] shared memory
 
 Authentication：
 
-- [ x ] token
+- [x] token
 
 Others:
 

@@ -3,12 +3,13 @@ package store
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/yaoguais/sober"
 )
 
 type Etcd struct {
-	*common
+	common
 	kv   *clientv3.Client
 	done chan struct{}
 }
@@ -21,22 +22,23 @@ func NewEtcd(kv *clientv3.Client) (*Etcd, error) {
 }
 
 func (s *Etcd) KV(path string) (map[string]string, error) {
-	if !s.ValidPath(path) {
-		return nil, ErrIllegalPath
-	}
-
+	realPath := s.realPath(path)
 	resp, err := s.kv.Get(
 		context.Background(),
-		s.realPath(path),
+		realPath,
 		clientv3.WithPrefix())
 	if err != nil {
 		return nil, err
 	}
 
 	kv := make(map[string]string)
-
+	rl := len(realPath)
 	for _, v := range resp.Kvs {
-		kv[string(v.Key)] = string(v.Value)
+		k := string(v.Key)[rl:]
+		if k == "" {
+			continue
+		}
+		kv[k] = string(v.Value)
 	}
 
 	return kv, nil
@@ -44,14 +46,11 @@ func (s *Etcd) KV(path string) (map[string]string, error) {
 
 func (s *Etcd) Watch(path string) (chan []Event, chan error) {
 	errC := make(chan error, 1)
-
-	if !s.ValidPath(path) {
-		errC <- ErrIllegalPath
-		return nil, errC
-	}
 	realPath := s.realPath(path)
 	retry := sober.NewRetry(1, 60)
 	eventC := make(chan []Event, 10)
+
+	fmt.Printf("realPath:%v\n", realPath)
 
 	go func() {
 	try:
@@ -74,8 +73,15 @@ func (s *Etcd) Watch(path string) (chan []Event, chan error) {
 
 				retry.Reset()
 
+				fmt.Printf("events:%v\n", resp.Events)
+
 				events := make([]Event, len(resp.Events))
 				for _, e := range resp.Events {
+					k := s.orignalPath(string(e.Kv.Key))
+					if k == "" {
+						continue
+					}
+
 					var t EventType
 					switch e.Type {
 					case clientv3.EventTypePut:
@@ -85,7 +91,7 @@ func (s *Etcd) Watch(path string) (chan []Event, chan error) {
 					}
 					evt := Event{
 						Type:  t,
-						Key:   s.realPath(string(e.Kv.Key)),
+						Key:   k,
 						Value: string(e.Kv.Value),
 					}
 					events = append(events, evt)

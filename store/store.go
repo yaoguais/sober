@@ -1,20 +1,15 @@
 package store
 
 import (
-	"errors"
-	"regexp"
+	"github.com/yaoguais/sober/kvpb"
 	"strings"
 )
 
-type EventType int
+type EventType = kvpb.Event_EventType
 
 const (
-	EventTypePut    = 0
-	EventTypeDelete = 1
-)
-
-var (
-	ErrIllegalPath = errors.New("illegal path")
+	EventTypePut    = kvpb.Event_PUT
+	EventTypeDelete = kvpb.Event_DELETE
 )
 
 type Event struct {
@@ -31,21 +26,10 @@ type Store interface {
 
 type common struct {
 	root string
-	rule *regexp.Regexp
 }
 
-func (c *common) SetRoot(root string) *common {
+func (c *common) SetRoot(root string) {
 	c.root = strings.ToLower(root)
-	return c
-}
-
-func (c *common) SetRule(rule *regexp.Regexp) *common {
-	c.rule = rule
-	return c
-}
-
-func (c *common) ValidPath(path string) bool {
-	return c.rule.Match([]byte(path))
 }
 
 func (c *common) realPath(path string) string {

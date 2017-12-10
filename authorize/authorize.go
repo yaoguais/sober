@@ -1,6 +1,7 @@
 package authorize
 
 import (
+	"github.com/sirupsen/logrus"
 	"github.com/yaoguais/sober/store"
 	"strings"
 	"sync"
@@ -17,18 +18,12 @@ var (
 
 func Add(auth Auth) {
 	tokens.Store(auth.Token, auth)
+	logrus.WithField("auth", auth).Debug("add auth")
 }
 
 func Remove(auth Auth) {
 	tokens.Delete(auth.Token)
-}
-
-func Replace(auths []Auth) {
-	t := sync.Map{}
-	for _, v := range auths {
-		t.Store(v.Token, v)
-	}
-	tokens = t
+	logrus.WithField("auth", auth).Debug("remove auth")
 }
 
 func Range(fn func(Auth)) {
@@ -43,13 +38,12 @@ func Valid(check Auth) bool {
 		return false
 	} else {
 		vv := v.(Auth)
-		return strings.HasPrefix(strings.ToLower(vv.Path), strings.ToLower(check.Path))
+		return strings.HasPrefix(check.Path, vv.Path)
 	}
 }
 
 func Start(s store.Store, basePath string) error {
 	path := basePath + "/authorize"
-	preLen := len(basePath) + 1
 
 	kv, err := s.KV(path)
 	if err != nil {
@@ -58,20 +52,21 @@ func Start(s store.Store, basePath string) error {
 
 	for k, v := range kv {
 		auth := Auth{
-			Token: k[preLen:],
+			Token: k[1:],
 			Path:  v,
 		}
 		Add(auth)
 	}
 
 	evtC, errC := s.Watch(path)
+
 	go func() {
 		select {
 		case <-errC:
 		case evts := <-evtC:
 			for _, e := range evts {
 				auth := Auth{
-					Token: string(e.Key),
+					Token: string(e.Key)[1:],
 					Path:  string(e.Value),
 				}
 				switch e.Type {

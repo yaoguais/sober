@@ -5,28 +5,16 @@ import (
 	"github.com/djherbis/times"
 	"github.com/go-ini/ini"
 	"github.com/yaoguais/sober"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
 )
 
-var (
-	validKey *regexp.Regexp
-)
-
-type Map map[string]interface{}
-type Array []interface{}
-
-func init() {
-	validKey, _ = regexp.Compile("[a-zA-Z](\\.?[0-9a-zA-Z_])*")
-}
-
 type File struct {
 	name  string
 	ctime time.Time
 	cfg   *ini.File
-	c     chan struct{}
+	done  chan struct{}
 	sync.RWMutex
 }
 
@@ -45,7 +33,7 @@ func NewFile(name string) (*File, error) {
 		name:  name,
 		cfg:   cfg,
 		ctime: t,
-		c:     make(chan struct{}),
+		done:  make(chan struct{}),
 	}
 
 	return f, nil
@@ -64,7 +52,7 @@ func (f *File) Get(key string) (string, error) {
 	defer f.RUnlock()
 
 	if !validKey.Match([]byte(key)) {
-		return "", errors.New("illegal key")
+		return "", ErrIllegalKey
 	}
 
 	section := ""
@@ -95,17 +83,22 @@ func (f *File) JSON() ([]byte, error) {
 		}
 	}
 
+	if len(kv) == 0 {
+		return nil, errors.New("empty data")
+	}
+
 	return sober.IniToPrettyJSON(kv)
 }
 
 func (f *File) Watch() (chan struct{}, chan error) {
 	c := make(chan struct{}, 1)
 	e := make(chan error, 1)
+
 	go func() {
 		t := time.NewTicker(time.Second)
 		for {
 			select {
-			case <-f.c:
+			case <-f.done:
 				return
 			case <-t.C:
 				v, err := ctime(f.name)
@@ -129,12 +122,12 @@ func (f *File) Watch() (chan struct{}, chan error) {
 }
 
 func (f *File) Close() error {
-	if f.c == nil {
+	if f.done == nil {
 		return errors.New("close twice")
 	}
 
-	close(f.c)
-	f.c = nil
+	close(f.done)
+	f.done = nil
 
 	return nil
 }

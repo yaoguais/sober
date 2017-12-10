@@ -24,9 +24,14 @@ func (r *Retry) Wait() {
 		r.c = make(chan struct{})
 	}
 
-	t := time.NewTimer(r.current)
+	c := make(chan struct{})
+	go func() {
+		time.Sleep(r.current)
+		c <- struct{}{}
+	}()
+
 	select {
-	case <-t.C:
+	case <-c:
 		break
 	case <-r.c:
 		break

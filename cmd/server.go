@@ -5,7 +5,12 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/sirupsen/logrus"
 	"github.com/yaoguais/sober/authorize"
+	"github.com/yaoguais/sober/dispatcher"
+	"github.com/yaoguais/sober/kvpb"
+	"github.com/yaoguais/sober/service"
 	"github.com/yaoguais/sober/store"
+	"google.golang.org/grpc"
+	"net"
 	"os"
 	"os/signal"
 	"regexp"
@@ -21,6 +26,8 @@ var (
 	rule  string
 	etcd  string
 	debug bool
+
+	stor store.Store
 )
 
 func init() {
@@ -34,8 +41,27 @@ func init() {
 }
 
 func main() {
-	var stor store.Store
+	initLog()
+	initStore()
+	initAuthorize()
+	go initDispatcher()
+	go initServer()
 
+	watch()
+}
+
+func initLog() {
+	if debug {
+		logrus.SetLevel(logrus.DebugLevel)
+		logrus.SetFormatter(&logrus.TextFormatter{})
+		logrus.SetOutput(os.Stdout)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+	}
+}
+
+func initStore() {
 	opts := clientv3.Config{
 		Endpoints:   strings.Split(etcd, ","),
 		DialTimeout: 5 * time.Second,
@@ -53,20 +79,49 @@ func main() {
 		os.Exit(1)
 	}
 
-	rule, err := regexp.Compile(rule)
+	s.SetRoot(root)
+
+	stor = s
+}
+
+func initAuthorize() {
+	err := authorize.Start(stor, path)
+	if err != nil {
+		logrus.WithError(err).Error("start authorize")
+		os.Exit(1)
+	}
+}
+
+func initDispatcher() {
+	dispatcher.Dispatch(stor)
+}
+
+func initServer() {
+	pathRule, err := regexp.Compile(rule)
 	if err != nil {
 		logrus.WithError(err).Debug("illegal rule")
 		os.Exit(1)
 	}
 
-	stor = s.SetRoot(root).SetRule(rule)
-
-	err = authorize.Start(stor, path)
+	lis, err := net.Listen("tcp", addr)
 	if err != nil {
-		logrus.WithError(err).Error("start authorize")
+		logrus.WithError(err).WithField("addr", addr).Error("listen")
 		os.Exit(1)
 	}
 
+	logrus.WithField("addr", addr).Info("listen")
+
+	kvSvc := service.NewKV(stor, pathRule)
+
+	grpcServer := grpc.NewServer()
+	kvpb.RegisterKVServer(grpcServer, kvSvc)
+	if err := grpcServer.Serve(lis); err != nil {
+		logrus.WithError(err).Error("serve")
+		os.Exit(1)
+	}
+}
+
+func watch() {
 	sigs := make(chan os.Signal, 1)
 	done := make(chan struct{}, 1)
 
@@ -79,7 +134,6 @@ func main() {
 		done <- struct{}{}
 	}()
 
-	logrus.Info("awaiting signal")
 	<-done
 	logrus.Info("exit")
 }

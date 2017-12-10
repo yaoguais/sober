@@ -1,0 +1,30 @@
+syntax = "proto3";
+package kvpb;
+
+service KV {
+    rpc Get(GetRequest) returns (GetResponse) {}
+    rpc Watch(WatchRequest) returns (stream Event) {}
+}
+
+message GetRequest {
+    string token = 1;
+    string root = 2;
+}
+
+message GetResponse {
+    map<string, string> kv = 1;
+}
+
+message WatchRequest {
+    string token = 1;
+    string root = 2;
+}
+
+message Event {
+  enum EventType {
+    PUT = 0;
+    DELETE = 1;
+  }
+
+  EventType type = 1;
+}

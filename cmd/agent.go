@@ -16,6 +16,8 @@ var (
 	token      string
 	root       string
 	debug      bool
+
+	dso ds.DataSource
 )
 
 func init() {
@@ -24,11 +26,29 @@ func init() {
 	flag.StringVar(&root, "root", "", "root path of keys, like /dev/blog/nginx/backend")
 	flag.StringVar(&output, "output", "", "output, file://.config.json")
 	flag.BoolVar(&debug, "debug", false, "enable debug")
+	flag.Parse()
 }
 
 func main() {
-	flag.Parse()
+	initLog()
+	initDataSource()
+	initOutput()
 
+	watch()
+}
+
+func initLog() {
+	if debug {
+		logrus.SetLevel(logrus.DebugLevel)
+		logrus.SetFormatter(&logrus.TextFormatter{})
+		logrus.SetOutput(os.Stdout)
+	} else {
+		logrus.SetLevel(logrus.InfoLevel)
+		logrus.SetFormatter(&logrus.JSONFormatter{})
+	}
+}
+
+func initDataSource() {
 	args := ds.Args{
 		DS:    datasource,
 		Token: token,
@@ -41,15 +61,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	data, err := ds.JSON()
-	if err != nil {
-		logrus.WithError(err).Error("convert to json")
-		os.Exit(1)
-	}
+	dso = ds
+}
 
+func initOutput() {
 	o, err := puter.Provider(output)
 	if err != nil {
 		logrus.WithError(err).Error("output provider")
+		os.Exit(1)
+	}
+
+	data, err := dso.JSON()
+	if err != nil {
+		logrus.WithError(err).Error("convert to json")
 		os.Exit(1)
 	}
 
@@ -58,12 +82,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	c, errC := ds.Watch()
+	logrus.WithField("data", string(data)).Debug("put data")
+
+	c, errC := dso.Watch()
 
 	go func() {
 		for range c {
 			logrus.Info("reload config")
-			data, err := ds.JSON()
+			data, err := dso.JSON()
 			if err != nil {
 				logrus.WithError(err).Error("convert to json")
 				continue
@@ -72,6 +98,8 @@ func main() {
 			if err := o.Put(data); err != nil {
 				logrus.WithError(err).Error("put failed")
 			}
+
+			logrus.WithField("data", string(data)).Debug("put data")
 		}
 	}()
 
@@ -80,7 +108,9 @@ func main() {
 			logrus.WithError(err).Error("watch")
 		}
 	}()
+}
 
+func watch() {
 	sigs := make(chan os.Signal, 1)
 	done := make(chan struct{}, 1)
 
@@ -89,7 +119,7 @@ func main() {
 	go func() {
 		sig := <-sigs
 		logrus.WithField("signal", sig).Info("receive signal")
-		ds.Close()
+		dso.Close()
 		done <- struct{}{}
 	}()
 

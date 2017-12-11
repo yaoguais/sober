@@ -1,24 +1,24 @@
 package dispatcher
 
 import (
-	"github.com/satori/go.uuid"
-	"github.com/sirupsen/logrus"
-	"github.com/yaoguais/sober/store"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/satori/go.uuid"
+	"github.com/sirupsen/logrus"
+	"github.com/yaoguais/sober/store"
 )
 
 var (
 	clients         sync.Map
-	DefaultInterval = 5 * time.Second
 	locker          sync.Mutex
+	DefaultInterval = 5 * time.Second
 )
 
 type client struct {
 	id   string
 	path string
-	push time.Time
 	evtC chan store.Event
 }
 
@@ -63,39 +63,54 @@ func UnRegister(c *client) {
 
 func Dispatch(s store.Store) {
 	evtC, errC := s.Watch("")
+	evtQueue := make(chan store.Event, 10000)
+
+	go func() {
+		for {
+			m := make(map[string]store.Event)
+			for len(evtQueue) > 0 {
+				e := <-evtQueue
+				m[e.Key] = e
+			}
+
+			for _, e := range m {
+				clients.Range(func(key, val interface{}) bool {
+					dispatchEvent(key, val, e)
+					return true
+				})
+			}
+
+			time.Sleep(DefaultInterval)
+		}
+	}()
 
 	for {
 		select {
 		case err := <-errC:
 			logrus.WithError(err).Error("dispatcher watch")
 		case e := <-evtC:
-			logrus.WithField("event", e).Debug("dispatcher")
-
-			clients.Range(func(key, val interface{}) bool {
-				dispatchEvent(key, val, e)
-				return true
-			})
+			logrus.WithField("event", e).Debug("dispatch")
+			evtQueue <- e
 		}
 	}
 }
 
 func dispatchEvent(key, val interface{}, e store.Event) {
-	now := time.Now()
 	path := key.(string)
-	if strings.HasPrefix(e.Key, path) {
-		if cs, ok := val.([]*client); ok {
-			for _, c := range cs {
-				if now.Sub(c.push) > DefaultInterval {
-					c.push = now
-					select {
-					case c.evtC <- e:
-						logrus.WithField("event", e).
-							WithField("client", c).
-							Debug("dispatcher")
-					default:
-					}
-				}
-			}
+	if !strings.HasPrefix(e.Key, path) {
+		return
+	}
+
+	cs, ok := val.([]*client)
+	if !ok {
+		return
+	}
+
+	for _, c := range cs {
+		select {
+		case c.evtC <- e:
+			logrus.WithField("event", e).WithField("client", c).Debug("dispatcher")
+		default:
 		}
 	}
 }

@@ -2,7 +2,6 @@ package store
 
 import (
 	"github.com/yaoguais/sober/kvpb"
-	"strings"
 )
 
 type EventType = kvpb.Event_EventType
@@ -29,11 +28,11 @@ type common struct {
 }
 
 func (c *common) SetRoot(root string) {
-	c.root = strings.ToLower(root)
+	c.root = root
 }
 
 func (c *common) realPath(path string) string {
-	return c.root + strings.ToLower(path)
+	return c.root + path
 }
 
 func (c *common) orignalPath(path string) string {

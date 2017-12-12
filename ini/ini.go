@@ -3,10 +3,11 @@ package ini
 import (
 	"errors"
 	"fmt"
-	"github.com/json-iterator/go"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/json-iterator/go"
 )
 
 type Map map[string]interface{}
@@ -75,7 +76,7 @@ func addToJSON(root interface{}, kv map[string]string, key, val string) error {
 			}
 			p = real[j]
 		default:
-			return fmt.Errorf("illegal type %T 1", p)
+			return fmt.Errorf("illegal type %T", p)
 		}
 	}
 
@@ -89,7 +90,7 @@ func addToJSON(root interface{}, kv map[string]string, key, val string) error {
 		}
 		p.(Array)[idx] = val
 	default:
-		return fmt.Errorf("illegal type %T 2", p)
+		return fmt.Errorf("illegal type %T", p)
 	}
 
 	return nil

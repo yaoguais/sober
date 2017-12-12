@@ -1,10 +1,11 @@
 package client
 
 import (
+	"io"
+
 	"github.com/yaoguais/sober/kvpb"
 	soberetry "github.com/yaoguais/sober/retry"
 	"golang.org/x/net/context"
-	"io"
 )
 
 type Event kvpb.Event
@@ -16,16 +17,12 @@ type KV struct {
 	cancel bool
 }
 
-func NewKV(token, root string) *KV {
+func NewKV(token, root string, kvc kvpb.KVClient) *KV {
 	return &KV{
-		token:  token,
-		root:   root,
-		cancel: false,
+		token: token,
+		root:  root,
+		kvc:   kvc,
 	}
-}
-
-func (o *KV) SetKVC(kvc kvpb.KVClient) {
-	o.kvc = kvc
 }
 
 func (o *KV) Get(path string) (map[string]string, error) {

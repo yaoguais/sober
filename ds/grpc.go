@@ -2,13 +2,14 @@ package ds
 
 import (
 	"errors"
+	"strings"
+	"sync"
+
 	"github.com/sirupsen/logrus"
 	"github.com/yaoguais/sober/client"
 	soberini "github.com/yaoguais/sober/ini"
 	"github.com/yaoguais/sober/kvpb"
 	"google.golang.org/grpc"
-	"strings"
-	"sync"
 )
 
 type GRPC struct {
@@ -20,14 +21,14 @@ type GRPC struct {
 }
 
 func NewGRPC(addr, token, root string) (*GRPC, error) {
-	kv := client.NewKV(token, root)
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
 	}
 
 	kvc := kvpb.NewKVClient(conn)
-	kv.SetKVC(kvc)
+
+	kv := client.NewKV(token, root, kvc)
 
 	g := &GRPC{
 		kv:   kv,
@@ -46,12 +47,12 @@ func NewGRPC(addr, token, root string) (*GRPC, error) {
 }
 
 func (g *GRPC) Get(key string) (string, error) {
-	g.RLock()
-	defer g.RUnlock()
-
 	if !validKey.Match([]byte(key)) {
 		return "", ErrIllegalKey
 	}
+
+	g.RLock()
+	defer g.RUnlock()
 
 	if v, ok := g.data[key]; !ok {
 		return "", ErrKeyNotExists

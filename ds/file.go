@@ -2,12 +2,13 @@ package ds
 
 import (
 	"errors"
-	"github.com/djherbis/times"
-	"github.com/go-ini/ini"
-	soberini "github.com/yaoguais/sober/ini"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/djherbis/times"
+	"github.com/go-ini/ini"
+	soberini "github.com/yaoguais/sober/ini"
 )
 
 type File struct {
@@ -48,9 +49,6 @@ func ctime(name string) (time.Time, error) {
 }
 
 func (f *File) Get(key string) (string, error) {
-	f.RLock()
-	defer f.RUnlock()
-
 	if !validKey.Match([]byte(key)) {
 		return "", ErrIllegalKey
 	}
@@ -59,6 +57,9 @@ func (f *File) Get(key string) (string, error) {
 	if i := strings.LastIndex(key, "."); i > -1 {
 		section = key[:i]
 	}
+
+	f.RLock()
+	defer f.RUnlock()
 
 	if v, err := f.cfg.Section(section).GetKey(key); err != nil {
 		return "", err
@@ -73,7 +74,6 @@ func (f *File) Set(key, val string) error {
 
 func (f *File) JSON() ([]byte, error) {
 	f.RLock()
-	defer f.RUnlock()
 
 	kv := make(map[string]string)
 	for _, section := range f.cfg.Sections() {
@@ -82,6 +82,8 @@ func (f *File) JSON() ([]byte, error) {
 			kv[v.Name()] = v.Value()
 		}
 	}
+
+	f.RUnlock()
 
 	if len(kv) == 0 {
 		return nil, errors.New("empty data")

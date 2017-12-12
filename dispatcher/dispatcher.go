@@ -11,9 +11,10 @@ import (
 )
 
 var (
-	clients         sync.Map
-	locker          sync.Mutex
 	DefaultInterval = 5 * time.Second
+
+	clients sync.Map
+	locker  sync.Mutex
 )
 
 type client struct {

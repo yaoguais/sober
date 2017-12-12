@@ -1,6 +1,8 @@
 package service
 
 import (
+	"regexp"
+
 	"github.com/sirupsen/logrus"
 	"github.com/yaoguais/sober/authorize"
 	"github.com/yaoguais/sober/dispatcher"
@@ -9,11 +11,10 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"regexp"
 )
 
 var (
-	ErrPermissionDenied = status.Error(codes.InvalidArgument, "permission denied")
+	ErrPermissionDenied = status.Error(codes.PermissionDenied, "permission denied")
 )
 
 type kv struct {

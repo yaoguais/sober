@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+
 	"github.com/coreos/etcd/clientv3"
 	"github.com/sirupsen/logrus"
 	soberetry "github.com/yaoguais/sober/retry"
@@ -45,11 +46,13 @@ func (s *Etcd) KV(path string) (map[string]string, error) {
 }
 
 func (s *Etcd) Watch(path string) (chan Event, chan error) {
-	errC := make(chan error, 1)
-	realPath := s.realPath(path)
-	retry := soberetry.New(1, 60)
 	eventC := make(chan Event, 10)
+	errC := make(chan error, 1)
+
+	realPath := s.realPath(path)
 	pathLen := len(path)
+
+	retry := soberetry.New(1, 60)
 
 	logrus.WithField("path", realPath).Debug("etcd watch")
 

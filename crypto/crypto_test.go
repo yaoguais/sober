@@ -2,9 +2,10 @@ package crypto
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"strings"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestEncrytDecrypt(t *testing.T) {
@@ -24,7 +25,7 @@ func TestEncrytDecrypt(t *testing.T) {
 		o, err := encrypt([]byte(v.Plain), []byte(v.Secret))
 		assert.Nil(t, err)
 		assert.Equal(t, v.Encrypt, fmt.Sprintf("%x", o))
-		p, err := decrypt(o, []byte(Secret))
+		p, err := decrypt(o, []byte(v.Secret))
 		assert.Nil(t, err)
 		assert.Equal(t, v.Plain, string(p))
 	}
@@ -36,7 +37,7 @@ func TestEncodeDecode(t *testing.T) {
 		"secretKey",
 		"secret",
 	}
-	Protect(keys)
+	SetProtect(keys)
 
 	tests := []struct {
 		Key     string
@@ -60,7 +61,7 @@ func TestEncodeDecode(t *testing.T) {
 		},
 	}
 
-	Secret = []byte("1234567890abcdefghijklmnopqrstuv")
+	SetSecret([]byte("1234567890abcdefghijklmnopqrstuv"))
 
 	for _, v := range tests {
 		e := Encode(v.Key, v.Val)

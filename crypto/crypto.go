@@ -9,19 +9,27 @@ import (
 
 var (
 	// Size 16, 24 or 32 support
-	Secret    []byte
-	defaultIV = []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f}
-	protect   map[string]struct{}
-	none      = struct{}{}
-	magic     = "\000\001\020"
-	magicLen  = len(magic)
+	defaultSecret []byte
+	defaultIV     = []byte{0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f}
+	protect       map[string]struct{}
+	none          = struct{}{}
+	magic         = "\000\001\020"
+	magicLen      = len(magic)
 )
 
-func Protect(l []string) {
+func SetProtect(l []string) {
 	protect = make(map[string]struct{})
 	for _, v := range l {
 		protect[strings.ToLower(v)] = none
 	}
+}
+
+func SetSecret(s []byte) {
+	defaultSecret = s
+}
+
+func SetIV(i []byte) {
+	defaultIV = i
 }
 
 func Encode(k, v string) string {
@@ -29,7 +37,7 @@ func Encode(k, v string) string {
 		return ""
 	}
 
-	if Secret == nil {
+	if defaultSecret == nil {
 		return v
 	}
 
@@ -41,7 +49,7 @@ func Encode(k, v string) string {
 		return v
 	}
 
-	if t, err := encrypt([]byte(v), Secret); err != nil {
+	if t, err := encrypt([]byte(v), defaultSecret); err != nil {
 		return v
 	} else {
 		return magic + hex.EncodeToString(t)
@@ -64,7 +72,7 @@ func Decode(k, v string) string {
 		return v
 	}
 
-	if c, err := decrypt(t, Secret); err != nil {
+	if c, err := decrypt(t, defaultSecret); err != nil {
 		return v
 	} else {
 		return string(c)

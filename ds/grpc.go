@@ -2,7 +2,6 @@ package ds
 
 import (
 	"errors"
-	"strings"
 	"sync"
 
 	"github.com/sirupsen/logrus"
@@ -124,12 +123,5 @@ func (g *GRPC) load() (map[string]string, error) {
 
 	logrus.WithField("kv", m).Debug("ds load")
 
-	data := make(map[string]string)
-	for k, v := range m {
-		k := strings.TrimLeft(k, "/")
-		k = strings.Replace(k, "/", ".", -1)
-		data[k] = v
-	}
-
-	return data, nil
+	return ReplaceToDotKey(m), nil
 }

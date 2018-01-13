@@ -17,7 +17,7 @@ func IniToJSON(kv map[string]string) ([]byte, error) {
 	if m, err := iniToMap(kv); err != nil {
 		return nil, err
 	} else {
-		return jsoniter.Marshal(m)
+		return jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(m)
 	}
 }
 
@@ -25,7 +25,7 @@ func IniToPrettyJSON(kv map[string]string) ([]byte, error) {
 	if m, err := iniToMap(kv); err != nil {
 		return nil, err
 	} else {
-		return jsoniter.MarshalIndent(m, "", "    ")
+		return jsoniter.ConfigCompatibleWithStandardLibrary.MarshalIndent(m, "", "    ")
 	}
 }
 

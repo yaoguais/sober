@@ -19,6 +19,7 @@ type Event struct {
 
 type Store interface {
 	KV(path string) (map[string]string, error)
+	Set(path string, kv map[string]string) error
 	Watch(path string) (chan Event, chan error)
 	Close() error
 }
@@ -42,6 +43,11 @@ func (c *common) orignalPath(path string) string {
 func (c *common) KV(path string) (map[string]string, error) {
 	panic("abstract method")
 	return nil, nil
+}
+
+func (c *common) Set(path string, kv map[string]string) error {
+	panic("abstract method")
+	return nil
 }
 
 func (c *common) Watch(path string) (chan Event, chan error) {

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"strings"
 )
 
 var (
@@ -46,4 +47,26 @@ func Provider(args Args) (DataSource, error) {
 	default:
 		return nil, fmt.Errorf(`illegal datasource "%s"`, m.Scheme)
 	}
+}
+
+func ReplaceToDotKey(m map[string]string) map[string]string {
+	data := make(map[string]string)
+	for k, v := range m {
+		k := strings.TrimLeft(k, "/")
+		k = strings.Replace(k, "/", ".", -1)
+		data[k] = v
+	}
+	return data
+}
+
+func ReplaceToSlashKey(m map[string]string) map[string]string {
+	data := make(map[string]string)
+	for k, v := range m {
+		k = strings.Replace(k, ".", "/", -1)
+		if len(k) > 0 && k[0] != '/' {
+			k = "/" + k
+		}
+		data[k] = v
+	}
+	return data
 }

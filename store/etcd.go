@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"errors"
+	gopath "path"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/sirupsen/logrus"
@@ -43,6 +44,32 @@ func (s *Etcd) KV(path string) (map[string]string, error) {
 	}
 
 	return kv, nil
+}
+
+func (s *Etcd) Set(path string, kv map[string]string) error {
+	pkv, err := s.KV(path)
+	if err != nil {
+		return err
+	}
+
+	realPath := s.realPath(path)
+	var ops []clientv3.Op
+	for k, v := range kv {
+		key := gopath.Join(realPath, k)
+		ops = append(ops, clientv3.OpPut(key, v))
+	}
+	for k := range pkv {
+		if _, ok := kv[k]; !ok {
+			key := gopath.Join(realPath, k)
+			ops = append(ops, clientv3.OpDelete(key))
+		}
+	}
+
+	ctx := context.Background()
+	txn := s.kv.Txn(ctx)
+	_, err = txn.Then(ops...).Commit()
+
+	return err
 }
 
 func (s *Etcd) Watch(path string) (chan Event, chan error) {

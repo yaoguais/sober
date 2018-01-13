@@ -1,0 +1,27 @@
+{
+    "key": "val",
+    "float": 0.000001,
+    "user": {
+        "username": "yaoguai",
+        "age": 25,
+        "interest": [
+            "coding",
+            "reading"
+        ]
+    },
+    "database": {
+        "master": {
+            "host": "127.0.0.1",
+            "port": 3306
+        }
+    },
+    "parent": {
+        "name": "rick",
+        "son": {
+            "name": "carl"
+        },
+        "daughter": {
+            "name": "judith"
+        }
+    }
+}

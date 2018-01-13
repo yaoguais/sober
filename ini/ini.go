@@ -10,8 +10,8 @@ import (
 	"github.com/json-iterator/go"
 )
 
-type Map map[string]interface{}
-type Array []interface{}
+type Map = map[string]interface{}
+type Array = []interface{}
 
 func IniToJSON(kv map[string]string) ([]byte, error) {
 	if m, err := iniToMap(kv); err != nil {

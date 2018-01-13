@@ -13,8 +13,8 @@ import (
 var (
 	datasource string
 	output     string
-	token      string
 	root       string
+	token      string
 	debug      bool
 
 	dso ds.DataSource
@@ -22,8 +22,8 @@ var (
 
 func init() {
 	flag.StringVar(&datasource, "datasource", "file://.env.ini", "data source, file://kv.ini, grpc://host:ip")
+	flag.StringVar(&root, "root", "", "root path of keys, like /dev/blog/backend/go")
 	flag.StringVar(&token, "token", "", "authorize token")
-	flag.StringVar(&root, "root", "", "root path of keys, like /dev/blog/nginx/backend")
 	flag.StringVar(&output, "output", "", "output, file://.config.json")
 	flag.BoolVar(&debug, "debug", false, "enable debug")
 	flag.Parse()

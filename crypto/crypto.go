@@ -17,6 +17,11 @@ var (
 	magicLen      = len(magic)
 )
 
+func init() {
+	SetSecret([]byte("yaoguai loves coding and reading"))
+	SetProtect([]string{"host", "user", "token", "secret", "password", "appKey", "appSecret"})
+}
+
 func SetProtect(l []string) {
 	protect = make(map[string]struct{})
 	for _, v := range l {

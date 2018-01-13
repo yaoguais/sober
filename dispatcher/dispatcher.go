@@ -68,15 +68,24 @@ func Dispatch(s store.Store) {
 
 	go func() {
 		for {
-			m := make(map[string]store.Event)
+			cc := make(map[string]struct{})
 			for len(evtQueue) > 0 {
 				e := <-evtQueue
-				m[e.Key] = e
-			}
-
-			for _, e := range m {
 				clients.Range(func(key, val interface{}) bool {
-					dispatchEvent(key, val, e)
+					for _, c := range val.([]*client) {
+						if _, ok := cc[c.id]; !ok {
+							cc[c.id] = struct{}{}
+
+							path := key.(string)
+							if strings.HasPrefix(e.Key, path) {
+								select {
+								case c.evtC <- e:
+									logrus.WithField("event", e).WithField("client", c).Debug("dispatcher")
+								default:
+								}
+							}
+						}
+					}
 					return true
 				})
 			}
@@ -92,26 +101,6 @@ func Dispatch(s store.Store) {
 		case e := <-evtC:
 			logrus.WithField("event", e).Debug("dispatch")
 			evtQueue <- e
-		}
-	}
-}
-
-func dispatchEvent(key, val interface{}, e store.Event) {
-	path := key.(string)
-	if !strings.HasPrefix(e.Key, path) {
-		return
-	}
-
-	cs, ok := val.([]*client)
-	if !ok {
-		return
-	}
-
-	for _, c := range cs {
-		select {
-		case c.evtC <- e:
-			logrus.WithField("event", e).WithField("client", c).Debug("dispatcher")
-		default:
 		}
 	}
 }

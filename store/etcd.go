@@ -7,6 +7,7 @@ import (
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/sirupsen/logrus"
+	"github.com/yaoguais/sober/crypto"
 	soberetry "github.com/yaoguais/sober/retry"
 )
 
@@ -40,7 +41,7 @@ func (s *Etcd) KV(path string) (map[string]string, error) {
 		if k == "" {
 			continue
 		}
-		kv[k] = string(v.Value)
+		kv[k] = crypto.Decode(gopath.Base(k), string(v.Value))
 	}
 
 	return kv, nil
@@ -56,7 +57,8 @@ func (s *Etcd) Set(path string, kv map[string]string) error {
 	var ops []clientv3.Op
 	for k, v := range kv {
 		key := gopath.Join(realPath, k)
-		ops = append(ops, clientv3.OpPut(key, v))
+		op := clientv3.OpPut(key, crypto.Encode(gopath.Base(key), v))
+		ops = append(ops, op)
 	}
 	for k := range pkv {
 		if _, ok := kv[k]; !ok {
@@ -122,7 +124,7 @@ func (s *Etcd) Watch(path string) (chan Event, chan error) {
 					evt := Event{
 						Type:  t,
 						Key:   k,
-						Value: string(e.Kv.Value),
+						Value: crypto.Decode(gopath.Base(k), string(e.Kv.Value)),
 					}
 
 					eventC <- evt

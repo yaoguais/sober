@@ -1,36 +1,32 @@
 package authorize
 
 import (
+	"fmt"
 	"github.com/sirupsen/logrus"
+	"github.com/yaoguais/sober/dispatcher"
 	"github.com/yaoguais/sober/store"
 	"strings"
 	"sync"
 )
 
 type Auth struct {
+	Name  string
 	Token string
 	Path  string
 }
 
 var (
-	tokens sync.Map
+	tokens *sync.Map
 )
 
-func Add(auth Auth) {
-	tokens.Store(auth.Token, auth)
-	logrus.WithField("auth", auth).Debug("add auth")
-}
-
-func Remove(auth Auth) {
-	tokens.Delete(auth.Token)
-	logrus.WithField("auth", auth).Debug("remove auth")
-}
-
-func Range(fn func(Auth)) {
-	tokens.Range(func(key, val interface{}) bool {
-		fn(val.(Auth))
-		return true
-	})
+func replaceAll(auths []Auth) {
+	logrus.Debug("replace all authorize")
+	tmpTokens := &sync.Map{}
+	for _, v := range auths {
+		tmpTokens.Store(v.Token, v)
+		logrus.WithField("auth", v).Debug("add auth")
+	}
+	tokens = tmpTokens
 }
 
 func Valid(check Auth) bool {
@@ -45,38 +41,71 @@ func Valid(check Auth) bool {
 func Start(s store.Store, basePath string) error {
 	path := basePath + "/authorize"
 
-	kv, err := s.KV(path)
-	if err != nil {
+	if auths, err := load(s, path); err != nil {
 		return err
+	} else {
+		replaceAll(auths)
 	}
 
-	for k, v := range kv {
-		auth := Auth{
-			Token: k[1:],
-			Path:  v,
-		}
-		Add(auth)
-	}
-
-	evtC, errC := s.Watch(path)
+	c := dispatcher.NewClient(path)
+	dispatcher.Register(c)
 
 	go func() {
-		select {
-		case err := <-errC:
-			logrus.WithError(err).Error("authorize watch")
-		case e := <-evtC:
-			auth := Auth{
-				Token: string(e.Key)[1:],
-				Path:  string(e.Value),
-			}
-			switch e.Type {
-			case store.EventTypePut:
-				Add(auth)
-			case store.EventTypeDelete:
-				Remove(auth)
+		defer dispatcher.UnRegister(c)
+		for range c.Event() {
+			if auths, err := load(s, path); err != nil {
+				logrus.WithError(err).Error("load auth")
+			} else {
+				replaceAll(auths)
 			}
 		}
 	}()
 
+	return nil
+}
+
+func load(s store.Store, path string) ([]Auth, error) {
+	kv, err := s.KV(path)
+	if err != nil {
+		return nil, err
+	}
+
+	var auths []Auth
+	for k, v := range kv {
+		if v == "" {
+			continue
+		}
+		keys := strings.Split(k, "/")
+		if len(keys) == 3 {
+			name := keys[1]
+			if keys[2] == "path" {
+				tokenKey := fmt.Sprintf("/%s/token", name)
+				if token := kv[tokenKey]; token != "" {
+					auth := Auth{
+						Name:  name,
+						Token: token,
+						Path:  v,
+					}
+					auths = append(auths, auth)
+				}
+			}
+		}
+	}
+
+	if err := check(auths); err != nil {
+		return nil, err
+	}
+
+	return auths, nil
+}
+
+func check(auths []Auth) error {
+	m := make(map[string]struct{})
+	for _, v := range auths {
+		if _, ok := m[v.Token]; ok {
+			return fmt.Errorf("duplicate token %s", v.Token)
+		}
+		m[v.Token] = struct{}{}
+	}
 	return nil
 }

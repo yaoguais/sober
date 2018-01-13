@@ -3,12 +3,12 @@ package sober
 import (
 	"github.com/spf13/cast"
 	"github.com/stretchr/testify/assert"
-	"github.com/yaoguais/sober/ds"
+	soberds "github.com/yaoguais/sober/ds"
 	"testing"
 )
 
 func init() {
-	DataSource, _ = ds.NewFile("./ds/.kv.ini")
+	ds, _ = soberds.NewFile("./ds/.kv.ini")
 }
 
 func TestSober(t *testing.T) {

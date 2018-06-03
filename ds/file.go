@@ -1,6 +1,8 @@
 package ds
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"strings"
 	"sync"
@@ -71,6 +73,16 @@ func (f *File) Set(key, val string) error {
 	return errors.New("forbid set")
 }
 
+func (f *File) Value() (string, error) {
+	var b bytes.Buffer
+	w := bufio.NewWriter(&b)
+	f.RLock()
+	_, err := f.cfg.WriteTo(w)
+	f.RUnlock()
+
+	return b.String(), err
+}
+
 func (f *File) Watch() (chan struct{}, chan error) {
 	c := make(chan struct{}, 1)
 	e := make(chan error, 1)
@@ -100,6 +112,10 @@ func (f *File) Watch() (chan struct{}, chan error) {
 	}()
 
 	return c, e
+}
+
+func (f *File) Feedback(error bool, message string) error {
+	return nil
 }
 
 func (f *File) Close() error {

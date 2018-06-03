@@ -102,7 +102,7 @@ func getIncomingMetadataValue(ctx context.Context, key string) (string, error) {
 	}
 	if len(md) > 0 && len(md[key]) > 0 {
 		if len(md[key][0]) > 0 {
-			return md["token"][0], nil
+			return md[key][0], nil
 		}
 		return "", fmt.Errorf("empty %s found", key)
 	}

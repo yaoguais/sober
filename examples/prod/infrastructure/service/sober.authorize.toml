@@ -1,8 +1,8 @@
-[auth]
+[[auth]]
 token = "nginx"
 key   = "/prod/blog/software/nginx"
 
-[auth]
+[[auth]]
 token = "go"
 key   = "/prod/blog/backend/go.json"
 

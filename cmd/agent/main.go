@@ -71,7 +71,7 @@ func initOutput() {
 		os.Exit(1)
 	}
 
-	v, err := dso.Get(key)
+	v, err := dso.Value()
 	if err != nil {
 		logrus.WithError(err).Error("get data")
 		os.Exit(1)
@@ -79,7 +79,10 @@ func initOutput() {
 
 	if err := o.Put([]byte(v)); err != nil {
 		logrus.WithError(err).Error("put failed")
+		dso.Feedback(true, err.Error())
 		os.Exit(1)
+	} else {
+		dso.Feedback(false, "put success")
 	}
 
 	logrus.WithField("data", v).Debug("put data")
@@ -89,7 +92,7 @@ func initOutput() {
 	go func() {
 		for range c {
 			logrus.Info("reload config")
-			v, err := dso.Get(key)
+			v, err := dso.Value()
 			if err != nil {
 				logrus.WithError(err).Error("get data")
 				continue
@@ -97,6 +100,9 @@ func initOutput() {
 
 			if err := o.Put([]byte(v)); err != nil {
 				logrus.WithError(err).Error("put failed")
+				dso.Feedback(true, err.Error())
+			} else {
+				dso.Feedback(false, "put success")
 			}
 
 			logrus.WithField("data", v).Debug("put data")

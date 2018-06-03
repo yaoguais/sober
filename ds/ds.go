@@ -21,7 +21,9 @@ func init() {
 type DataSource interface {
 	Get(key string) (string, error)
 	Set(key, val string) error
+	Value() (string, error)
 	Watch() (chan struct{}, chan error)
+	Feedback(error bool, message string) error
 	Close() error
 }
 

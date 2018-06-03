@@ -12,13 +12,13 @@ import (
 
 type GRPC struct {
 	kv   *client.KV
-	root string
+	key  string
 	data string
 	done chan struct{}
 	sync.RWMutex
 }
 
-func NewGRPC(addr, token, root string) (*GRPC, error) {
+func NewGRPC(addr, token, key string) (*GRPC, error) {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
 		return nil, err
@@ -26,11 +26,11 @@ func NewGRPC(addr, token, root string) (*GRPC, error) {
 
 	kvc := kvpb.NewKVClient(conn)
 
-	kv := client.NewKV(token, root, kvc)
+	kv := client.NewKV(token, key, kvc)
 
 	g := &GRPC{
 		kv:   kv,
-		root: root,
+		key:  key,
 		done: make(chan struct{}),
 	}
 
@@ -45,18 +45,19 @@ func NewGRPC(addr, token, root string) (*GRPC, error) {
 }
 
 func (g *GRPC) Get(key string) (string, error) {
-	if !validKey.Match([]byte(key)) {
-		return "", ErrIllegalKey
-	}
-
-	g.RLock()
-	defer g.RUnlock()
-
-	return g.data, nil
+	return "", errors.New("not support")
 }
 
 func (g *GRPC) Set(key, val string) error {
 	return errors.New("forbid set")
+}
+
+func (g *GRPC) Value() (string, error) {
+	g.RLock()
+	v := g.data
+	g.RUnlock()
+
+	return v, nil
 }
 
 func (g *GRPC) Watch() (chan struct{}, chan error) {
@@ -86,6 +87,10 @@ func (g *GRPC) Watch() (chan struct{}, chan error) {
 	}()
 
 	return c, errC
+}
+
+func (g *GRPC) Feedback(error bool, message string) error {
+	return g.kv.Feedback(error, message)
 }
 
 func (g *GRPC) Close() error {

@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"net"
 	"os"
 	"os/signal"
@@ -44,11 +43,8 @@ func init() {
 
 func main() {
 	initLog()
-	fmt.Println("log")
 	initStore()
-	fmt.Println("store")
 	initAuthorize()
-	fmt.Println("auth")
 	go initDispatcher()
 	go initServer()
 

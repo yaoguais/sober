@@ -12,8 +12,12 @@ import (
 )
 
 type Auth struct {
-	Token string `json:"token" toml:"token" yaml:"toml"`
+	Token string `json:"token" toml:"token" yaml:"token"`
 	Key   string `json:"key" toml:"key" yaml:"key"`
+}
+
+type Auths struct {
+	Auth []Auth `json:"auth" toml:"auth" yaml:"auth"`
 }
 
 var (
@@ -69,16 +73,16 @@ func load(s store.Store, key string) ([]Auth, error) {
 		return nil, err
 	}
 
-	var auths []Auth
-	if err = decode.Decode(key, v, &auths); err != nil {
+	var a Auths
+	if err = decode.Decode(key, v, &a); err != nil {
 		return nil, err
 	}
 
-	if err = check(auths); err != nil {
+	if err = check(a.Auth); err != nil {
 		return nil, err
 	}
 
-	return auths, nil
+	return a.Auth, nil
 }
 
 func check(auths []Auth) error {

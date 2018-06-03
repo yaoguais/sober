@@ -92,6 +92,16 @@ func (o *KV) Watch() (chan Event, chan error) {
 
 	return c, errC
 }
+func (o *KV) Feedback(error bool, message string) error {
+	req := &kvpb.FeedbackRequest{
+		Key:     o.key,
+		Error:   error,
+		Message: message,
+	}
+
+	_, err := o.kvc.Feedback(o.newContext(), req)
+	return err
+}
 
 func (o *KV) Cancel() {
 	o.cancel = true

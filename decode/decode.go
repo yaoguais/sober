@@ -19,6 +19,6 @@ func Decode(key, value string, v interface{}) error {
 	case ".yaml", ".yml":
 		return yaml.Unmarshal([]byte(value), v)
 	default:
-		return fmt.Errorf("filetype '%s' not support")
+		return fmt.Errorf("filetype '%s' not support", e)
 	}
 }

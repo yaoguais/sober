@@ -3,11 +3,10 @@ package store
 import (
 	"context"
 	"errors"
-	gopath "path"
+	"fmt"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/sirupsen/logrus"
-	"github.com/yaoguais/sober/crypto"
 	soberetry "github.com/yaoguais/sober/retry"
 )
 
@@ -24,72 +23,47 @@ func NewEtcd(kv *clientv3.Client) (*Etcd, error) {
 	}, nil
 }
 
-func (s *Etcd) KV(path string) (map[string]string, error) {
-	realPath := s.realPath(path)
-	resp, err := s.kv.Get(
-		context.Background(),
-		realPath,
-		clientv3.WithPrefix())
+func (s *Etcd) Get(key string) (string, error) {
+	logrus.WithField("key", key).Debug("etcd get")
+
+	resp, err := s.kv.Get(context.Background(), s.realKey(key))
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	kv := make(map[string]string)
-	rl := len(realPath)
-	for _, v := range resp.Kvs {
-		k := string(v.Key)[rl:]
-		if k == "" {
-			continue
-		}
-		kv[k] = crypto.Decode(gopath.Base(k), string(v.Value))
+	if len(resp.Kvs) == 0 {
+		return "", fmt.Errorf("key %s not found", key)
 	}
 
-	return kv, nil
+	if len(resp.Kvs) != 1 {
+		return "", errors.New("should get 1 kv pair")
+	}
+
+	return string(resp.Kvs[0].Value), nil
 }
 
-func (s *Etcd) Set(path string, kv map[string]string) error {
-	pkv, err := s.KV(path)
-	if err != nil {
-		return err
-	}
+func (s *Etcd) Set(key, value string) error {
+	_, err := s.kv.Put(context.Background(), s.realKey(key), value)
 
-	realPath := s.realPath(path)
-	var ops []clientv3.Op
-	for k, v := range kv {
-		key := gopath.Join(realPath, k)
-		op := clientv3.OpPut(key, crypto.Encode(gopath.Base(key), v))
-		ops = append(ops, op)
-	}
-	for k := range pkv {
-		if _, ok := kv[k]; !ok {
-			key := gopath.Join(realPath, k)
-			ops = append(ops, clientv3.OpDelete(key))
-		}
-	}
-
-	ctx := context.Background()
-	txn := s.kv.Txn(ctx)
-	_, err = txn.Then(ops...).Commit()
+	logrus.WithField("key", key).Debug("etcd set")
 
 	return err
 }
 
-func (s *Etcd) Watch(path string) (chan Event, chan error) {
+func (s *Etcd) Watch(key string) (chan Event, chan error) {
 	eventC := make(chan Event, 10)
 	errC := make(chan error, 1)
 
-	realPath := s.realPath(path)
-	pathLen := len(path)
-
-	retry := soberetry.New(1, 60)
-
-	logrus.WithField("path", realPath).Debug("etcd watch")
+	logrus.WithField("key", key).Debug("etcd watch")
 
 	go func() {
+		realKey := s.realKey(key)
+		retry := soberetry.New(1, 60)
+
 	try:
 		c := s.kv.Watch(
 			context.Background(),
-			realPath,
+			realKey,
 			clientv3.WithPrefix())
 
 		for {
@@ -109,25 +83,14 @@ func (s *Etcd) Watch(path string) (chan Event, chan error) {
 				for _, e := range resp.Events {
 					logrus.WithField("event", e).Debug("etcd event")
 
-					k := s.orignalPath(string(e.Kv.Key))[pathLen:]
+					k := s.orignalKey(string(e.Kv.Key))
 					if k == "" {
 						continue
 					}
 
-					var t EventType
-					switch e.Type {
-					case clientv3.EventTypePut:
-						t = EventTypePut
-					case clientv3.EventTypeDelete:
-						t = EventTypeDelete
+					eventC <- Event{
+						Key: k,
 					}
-					evt := Event{
-						Type:  t,
-						Key:   k,
-						Value: crypto.Decode(gopath.Base(k), string(e.Kv.Value)),
-					}
-
-					eventC <- evt
 				}
 
 			}

@@ -9,33 +9,34 @@
 2. Build tools
 
 ```
-go build -o server ../cmd/server.go
-go build -o agent ../cmd/agent.go
-go build -o soberctl ../cmd/soberctl.go
+go build -o bin/server ../cmd/server/main.go
+go build -o bin/agent ../cmd/agent/main.go
+go build -o bin/soberctl ../cmd/soberctl/main.go
 ```
 
 3. Initial authorize
 
 ```
-./soberctl set /prod/infrastructure/service/sober
-./soberctl get /prod/infrastructure/service/sober
+bin/soberctl set /prod/infrastructure/service/sober.authorize.toml
+bin/soberctl get /prod/infrastructure/service/sober.authorize.toml
 ```
 
 4. Initial project
 
 ```
-./soberctl set /prod/blog/backend/go
-./soberctl get /prod/blog/backend/go
+bin/soberctl set /prod/blog/backend/go.json
+bin/soberctl get /prod/blog/backend/go.json
 ```
 
 5. Start server
 
 ```
-./server -debug
+bin/server -debug
 ```
 
 6. Start agent
 
 ```
-./agent --datasource grpc://127.0.0.1:3333 --root /prod/blog/backend/go --token prodgotoken --output file://prodBlogBackendGo.json --debug
-```    
+bin/agent --datasource grpc://127.0.0.1:3333 --key /prod/blog/backend/go.json --token go --output file://prodBlogBackendGo.json --debug
+```
+

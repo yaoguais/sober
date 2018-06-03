@@ -19,7 +19,7 @@ var (
 
 type client struct {
 	id   string
-	path string
+	key  string
 	evtC chan store.Event
 }
 
@@ -27,10 +27,15 @@ func (c *client) Event() <-chan store.Event {
 	return c.evtC
 }
 
-func NewClient(path string) *client {
+func NewClient(key string) *client {
+	id, err := uuid.NewV4()
+	if err != nil {
+		panic(err)
+	}
+
 	return &client{
-		id:   uuid.NewV4().String(),
-		path: path,
+		id:   id.String(),
+		key:  key,
 		evtC: make(chan store.Event, 10),
 	}
 }
@@ -40,25 +45,25 @@ func Register(c *client) {
 	defer locker.Unlock()
 
 	var cs []*client
-	if v, ok := clients.Load(c.path); ok {
+	if v, ok := clients.Load(c.key); ok {
 		cs = v.([]*client)
 	}
 	cs = append(cs, c)
-	clients.Store(c.path, cs)
+	clients.Store(c.key, cs)
 }
 
 func UnRegister(c *client) {
 	locker.Lock()
 	defer locker.Unlock()
 
-	if cs, ok := clients.Load(c.path); ok {
+	if cs, ok := clients.Load(c.key); ok {
 		ncs := []*client{}
 		for _, v := range cs.([]*client) {
 			if v.id != c.id {
 				ncs = append(ncs, v)
 			}
 		}
-		clients.Store(c.path, ncs)
+		clients.Store(c.key, ncs)
 	}
 }
 
@@ -76,8 +81,8 @@ func Dispatch(s store.Store) {
 						if _, ok := cc[c.id]; !ok {
 							cc[c.id] = struct{}{}
 
-							path := key.(string)
-							if strings.HasPrefix(e.Key, path) {
+							k := key.(string)
+							if strings.HasPrefix(e.Key, k) {
 								select {
 								case c.evtC <- e:
 									logrus.WithField("event", e).WithField("client", c).Debug("dispatcher")

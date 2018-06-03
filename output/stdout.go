@@ -3,8 +3,6 @@ package output
 import (
 	"errors"
 	"os"
-
-	"github.com/asaskevich/govalidator"
 )
 
 type Stdout struct {
@@ -15,8 +13,8 @@ func NewStdout() (*Stdout, error) {
 }
 
 func (*Stdout) Put(data []byte) error {
-	if !govalidator.IsJSON(string(data)) {
-		return errors.New("illegal json")
+	if len(data) == 0 {
+		return errors.New("empty data")
 	}
 
 	os.Stdout.Write(data)

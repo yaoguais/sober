@@ -2,17 +2,22 @@ package authorize
 
 import (
 	"fmt"
-	"github.com/sirupsen/logrus"
-	"github.com/yaoguais/sober/dispatcher"
-	"github.com/yaoguais/sober/store"
 	"strings"
 	"sync"
+
+	"github.com/sirupsen/logrus"
+	"github.com/yaoguais/sober/decode"
+	"github.com/yaoguais/sober/dispatcher"
+	"github.com/yaoguais/sober/store"
 )
 
 type Auth struct {
-	Name  string
-	Token string
-	Path  string
+	Token string `json:"token" toml:"token" yaml:"token"`
+	Key   string `json:"key" toml:"key" yaml:"key"`
+}
+
+type Auths struct {
+	Auth []Auth `json:"auth" toml:"auth" yaml:"auth"`
 }
 
 var (
@@ -34,26 +39,24 @@ func Valid(check Auth) bool {
 		return false
 	} else {
 		vv := v.(Auth)
-		return strings.HasPrefix(check.Path, vv.Path)
+		return strings.HasPrefix(check.Key, vv.Key)
 	}
 }
 
-func Start(s store.Store, basePath string) error {
-	path := basePath + "/authorize"
-
-	if auths, err := load(s, path); err != nil {
+func Start(s store.Store, key string) error {
+	if auths, err := load(s, key); err != nil {
 		return err
 	} else {
 		replaceAll(auths)
 	}
 
-	c := dispatcher.NewClient(path)
+	c := dispatcher.NewClient(key)
 	dispatcher.Register(c)
 
 	go func() {
 		defer dispatcher.UnRegister(c)
 		for range c.Event() {
-			if auths, err := load(s, path); err != nil {
+			if auths, err := load(s, key); err != nil {
 				logrus.WithError(err).Error("load auth")
 			} else {
 				replaceAll(auths)
@@ -64,39 +67,22 @@ func Start(s store.Store, basePath string) error {
 	return nil
 }
 
-func load(s store.Store, path string) ([]Auth, error) {
-	kv, err := s.KV(path)
+func load(s store.Store, key string) ([]Auth, error) {
+	v, err := s.Get(key)
 	if err != nil {
 		return nil, err
 	}
 
-	var auths []Auth
-	for k, v := range kv {
-		if v == "" {
-			continue
-		}
-		keys := strings.Split(k, "/")
-		if len(keys) == 3 {
-			name := keys[1]
-			if keys[2] == "path" {
-				tokenKey := fmt.Sprintf("/%s/token", name)
-				if token := kv[tokenKey]; token != "" {
-					auth := Auth{
-						Name:  name,
-						Token: token,
-						Path:  v,
-					}
-					auths = append(auths, auth)
-				}
-			}
-		}
-	}
-
-	if err := check(auths); err != nil {
+	var a Auths
+	if err = decode.Decode(key, v, &a); err != nil {
 		return nil, err
 	}
 
-	return auths, nil
+	if err = check(a.Auth); err != nil {
+		return nil, err
+	}
+
+	return a.Auth, nil
 }
 
 func check(auths []Auth) error {

@@ -1,6 +1,8 @@
 package ds
 
 import (
+	"bufio"
+	"bytes"
 	"errors"
 	"strings"
 	"sync"
@@ -8,7 +10,6 @@ import (
 
 	"github.com/djherbis/times"
 	"github.com/go-ini/ini"
-	soberini "github.com/yaoguais/sober/ini"
 )
 
 type File struct {
@@ -72,24 +73,14 @@ func (f *File) Set(key, val string) error {
 	return errors.New("forbid set")
 }
 
-func (f *File) JSON() ([]byte, error) {
+func (f *File) Value() (string, error) {
+	var b bytes.Buffer
+	w := bufio.NewWriter(&b)
 	f.RLock()
-
-	kv := make(map[string]string)
-	for _, section := range f.cfg.Sections() {
-		keys := section.Keys()
-		for _, v := range keys {
-			kv[v.Name()] = v.Value()
-		}
-	}
-
+	_, err := f.cfg.WriteTo(w)
 	f.RUnlock()
 
-	if len(kv) == 0 {
-		return nil, errors.New("empty data")
-	}
-
-	return soberini.IniToPrettyJSON(kv)
+	return b.String(), err
 }
 
 func (f *File) Watch() (chan struct{}, chan error) {
@@ -121,6 +112,10 @@ func (f *File) Watch() (chan struct{}, chan error) {
 	}()
 
 	return c, e
+}
+
+func (f *File) Feedback(error bool, message string) error {
+	return nil
 }
 
 func (f *File) Close() error {

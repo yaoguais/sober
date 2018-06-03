@@ -34,7 +34,7 @@ func (m *GetRequest) Reset()         { *m = GetRequest{} }
 func (m *GetRequest) String() string { return proto.CompactTextString(m) }
 func (*GetRequest) ProtoMessage()    {}
 func (*GetRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_kv_9d50e2807ebd1ff7, []int{0}
+	return fileDescriptor_kv_66c22fc9e4b82bbb, []int{0}
 }
 func (m *GetRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetRequest.Unmarshal(m, b)
@@ -72,7 +72,7 @@ func (m *GetResponse) Reset()         { *m = GetResponse{} }
 func (m *GetResponse) String() string { return proto.CompactTextString(m) }
 func (*GetResponse) ProtoMessage()    {}
 func (*GetResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_kv_9d50e2807ebd1ff7, []int{1}
+	return fileDescriptor_kv_66c22fc9e4b82bbb, []int{1}
 }
 func (m *GetResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetResponse.Unmarshal(m, b)
@@ -111,7 +111,7 @@ func (m *SetRequest) Reset()         { *m = SetRequest{} }
 func (m *SetRequest) String() string { return proto.CompactTextString(m) }
 func (*SetRequest) ProtoMessage()    {}
 func (*SetRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_kv_9d50e2807ebd1ff7, []int{2}
+	return fileDescriptor_kv_66c22fc9e4b82bbb, []int{2}
 }
 func (m *SetRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SetRequest.Unmarshal(m, b)
@@ -155,7 +155,7 @@ func (m *SetResponse) Reset()         { *m = SetResponse{} }
 func (m *SetResponse) String() string { return proto.CompactTextString(m) }
 func (*SetResponse) ProtoMessage()    {}
 func (*SetResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_kv_9d50e2807ebd1ff7, []int{3}
+	return fileDescriptor_kv_66c22fc9e4b82bbb, []int{3}
 }
 func (m *SetResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SetResponse.Unmarshal(m, b)
@@ -186,7 +186,7 @@ func (m *WatchRequest) Reset()         { *m = WatchRequest{} }
 func (m *WatchRequest) String() string { return proto.CompactTextString(m) }
 func (*WatchRequest) ProtoMessage()    {}
 func (*WatchRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_kv_9d50e2807ebd1ff7, []int{4}
+	return fileDescriptor_kv_66c22fc9e4b82bbb, []int{4}
 }
 func (m *WatchRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_WatchRequest.Unmarshal(m, b)
@@ -223,7 +223,7 @@ func (m *Event) Reset()         { *m = Event{} }
 func (m *Event) String() string { return proto.CompactTextString(m) }
 func (*Event) ProtoMessage()    {}
 func (*Event) Descriptor() ([]byte, []int) {
-	return fileDescriptor_kv_9d50e2807ebd1ff7, []int{5}
+	return fileDescriptor_kv_66c22fc9e4b82bbb, []int{5}
 }
 func (m *Event) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Event.Unmarshal(m, b)
@@ -256,7 +256,7 @@ func (m *FeedbackRequest) Reset()         { *m = FeedbackRequest{} }
 func (m *FeedbackRequest) String() string { return proto.CompactTextString(m) }
 func (*FeedbackRequest) ProtoMessage()    {}
 func (*FeedbackRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_kv_9d50e2807ebd1ff7, []int{6}
+	return fileDescriptor_kv_66c22fc9e4b82bbb, []int{6}
 }
 func (m *FeedbackRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FeedbackRequest.Unmarshal(m, b)
@@ -307,7 +307,7 @@ func (m *FeedbackResponse) Reset()         { *m = FeedbackResponse{} }
 func (m *FeedbackResponse) String() string { return proto.CompactTextString(m) }
 func (*FeedbackResponse) ProtoMessage()    {}
 func (*FeedbackResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_kv_9d50e2807ebd1ff7, []int{7}
+	return fileDescriptor_kv_66c22fc9e4b82bbb, []int{7}
 }
 func (m *FeedbackResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FeedbackResponse.Unmarshal(m, b)
@@ -537,9 +537,9 @@ var _KV_serviceDesc = grpc.ServiceDesc{
 	Metadata: "kv.proto",
 }
 
-func init() { proto.RegisterFile("kv.proto", fileDescriptor_kv_9d50e2807ebd1ff7) }
+func init() { proto.RegisterFile("kv.proto", fileDescriptor_kv_66c22fc9e4b82bbb) }
 
-var fileDescriptor_kv_9d50e2807ebd1ff7 = []byte{
+var fileDescriptor_kv_66c22fc9e4b82bbb = []byte{
 	// 267 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x91, 0x4f, 0x4f, 0x83, 0x40,
 	0x10, 0xc5, 0x4b, 0x11, 0x8b, 0x0f, 0x8d, 0x38, 0x51, 0x43, 0x38, 0x98, 0x66, 0xbd, 0x78, 0x30,

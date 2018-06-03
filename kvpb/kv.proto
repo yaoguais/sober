@@ -4,9 +4,9 @@ package kvpb;
 
 service KV {
     rpc Get(GetRequest) returns (GetResponse) {}
-	rpc Set(SetRequest) returns (SetResponse) {}
+    rpc Set(SetRequest) returns (SetResponse) {}
     rpc Watch(WatchRequest) returns (stream Event) {}
-	rpc Feedback(FeedbackRequest) returns (FeedbackResponse) {}
+    rpc Feedback(FeedbackRequest) returns (FeedbackResponse) {}
 }
 
 message GetRequest {
@@ -18,8 +18,8 @@ message GetResponse {
 }
 
 message SetRequest {
-	string key = 1;
-	string velue = 2;
+    string key = 1;
+    string velue = 2;
 }
 
 message SetResponse {
@@ -33,9 +33,9 @@ message Event {
 }
 
 message FeedbackRequest {
-	string key = 1;
-	bool error = 2;
-	string message = 3;
+    string key = 1;
+    bool error = 2;
+    string message = 3;
 }
 
 message FeedbackResponse {

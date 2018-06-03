@@ -24,22 +24,22 @@ DataSource:
 
 Output:
 
-- [x] json file
+- [x] file
 - [x] stdout
 - [ ] shared memory
 
 Authentication：
 
 - [x] token
+- [x] gRPC authentication
 
 Others:
 
 - auto watch and reload
 - easy golang library
+- traffic optimization
 
 Todo:
 
-- [ ] traffic optimization
 - [ ] match algorithm optimization
-- [ ] gRPC authentication
 

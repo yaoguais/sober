@@ -4,14 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"github.com/coreos/etcd/clientv3"
-	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
-	"github.com/yaoguais/sober/ds"
-	"github.com/yaoguais/sober/ini"
 	"github.com/yaoguais/sober/store"
 	"io/ioutil"
 	"os"
-	gopath "path"
 	"regexp"
 	"strings"
 	"time"
@@ -27,8 +23,8 @@ var (
 )
 
 func init() {
-	flag.StringVar(&root, "root", "/config/center", "root for all paths")
-	flag.StringVar(&rule, "rule", "^(\\/[a-zA-Z0-9_-]+){4,}$", "root validate rule")
+	flag.StringVar(&root, "root", "/config/center", "root for all keys")
+	flag.StringVar(&rule, "rule", "^(\\/[a-zA-Z0-9_.-]+){4,}$", "key validate rule")
 	flag.StringVar(&etcd, "etcd", "127.0.0.1:2379", "etcd addresse 127.0.0.1:2379,127.0.0.1:2381")
 	flag.BoolVar(&debug, "debug", false, "enable debug")
 	flag.Parse()
@@ -39,14 +35,14 @@ func Usage() {
 	flag.PrintDefaults()
 	fmt.Fprintf(os.Stderr, `
 Examples:
-Get config of a path
-soberctl get path
+Get config of a key
+soberctl get key
 soberctl get /dev/blog/nginx/backend
 
-Set config of a path
-soberctl set path [./${path}.json]
-soberctl set /dev/blog/nginx/backend
-soberctl set /dev/blog/nginx/backend /tmp/config.json`)
+Set config of a key
+soberctl set key [./${key}]
+soberctl set /dev/blog/software/nginx
+soberctl set /dev/blog/software/nginx /tmp/nginx.conf`)
 	os.Exit(1)
 }
 
@@ -59,38 +55,32 @@ func main() {
 		Usage()
 	}
 
-	validPath, err := regexp.Compile(rule)
+	validKey, err := regexp.Compile(rule)
 	if err != nil {
 		logrus.WithError(err).Error("invalid rule")
 		os.Exit(1)
 	}
 
-	path := args[1]
-	if !validPath.Match([]byte(path)) {
-		logrus.Errorf("path %s not match rule %s", path, rule)
+	key := args[1]
+	if !validKey.Match([]byte(key)) {
+		logrus.Errorf("key %s not match rule %s", key, rule)
 		os.Exit(1)
 	}
 
 	switch args[0] {
 	case "get":
-		kv, err := stor.KV(path)
+		v, err := stor.Get(key)
 		if err != nil {
 			logrus.WithError(err).Error("read store")
 			os.Exit(1)
 		}
-		kv = ds.ReplaceToDotKey(kv)
-		bs, err := ini.IniToPrettyJSON(kv)
-		if err != nil {
-			logrus.WithError(err).Error("convert to json failed")
-			os.Exit(1)
-		}
-		fmt.Fprintf(os.Stdout, "Result:\n%s\n", string(bs))
+		fmt.Fprintf(os.Stdout, "Result:\n%s\n", v)
 	case "set":
 		if len(args) > 3 {
 			Usage()
 		}
 
-		cfgFile := gopath.Join(".", path, "config.json")
+		cfgFile := "." + key
 		if len(args) == 3 {
 			cfgFile = args[2]
 		}
@@ -100,21 +90,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		var v interface{}
-		err = jsoniter.Unmarshal(bs, &v)
-		if err != nil {
-			logrus.WithError(err).Error("parse config file")
-			os.Exit(1)
-		}
-
-		kv, err := ini.JSONToIni(v)
-		if err != nil {
-			logrus.WithError(err).Error("convert to ini failed")
-			os.Exit(1)
-		}
-		kv = ds.ReplaceToSlashKey(kv)
-
-		err = stor.Set(path, kv)
+		err = stor.Set(key, string(bs))
 		if err != nil {
 			logrus.WithError(err).Error("store failed")
 			os.Exit(1)

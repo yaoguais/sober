@@ -2,6 +2,15 @@ package main
 
 import (
 	"flag"
+	"fmt"
+	"net"
+	"os"
+	"os/signal"
+	"regexp"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/coreos/etcd/clientv3"
 	"github.com/sirupsen/logrus"
 	"github.com/yaoguais/sober/authorize"
@@ -10,31 +19,24 @@ import (
 	"github.com/yaoguais/sober/service"
 	"github.com/yaoguais/sober/store"
 	"google.golang.org/grpc"
-	"net"
-	"os"
-	"os/signal"
-	"regexp"
-	"strings"
-	"syscall"
-	"time"
 )
 
 var (
-	addr  string
-	root  string
-	path  string
-	rule  string
-	etcd  string
-	debug bool
+	addr    string
+	root    string
+	authkey string
+	rule    string
+	etcd    string
+	debug   bool
 
 	stor store.Store
 )
 
 func init() {
 	flag.StringVar(&addr, "addr", "0.0.0.0:3333", "server listen address, host:ip")
-	flag.StringVar(&root, "root", "/config/center", "root for all paths")
-	flag.StringVar(&path, "path", "/prod/infrastructure/service/sober", "path for saving data")
-	flag.StringVar(&rule, "rule", "^(\\/[a-zA-Z0-9_-]+){4,}$", "root validate rule")
+	flag.StringVar(&root, "root", "/config/center", "root for all keys")
+	flag.StringVar(&authkey, "authkey", "/prod/infrastructure/service/sober.authorize.toml", "key for saving sober authroize config")
+	flag.StringVar(&rule, "rule", "^(\\/[a-zA-Z0-9_.-]+){4,}$", "key validate rule")
 	flag.StringVar(&etcd, "etcd", "127.0.0.1:2379", "etcd addresse 127.0.0.1:2379,127.0.0.1:2381")
 	flag.BoolVar(&debug, "debug", false, "enable debug")
 	flag.Parse()
@@ -42,8 +44,11 @@ func init() {
 
 func main() {
 	initLog()
+	fmt.Println("log")
 	initStore()
+	fmt.Println("store")
 	initAuthorize()
+	fmt.Println("auth")
 	go initDispatcher()
 	go initServer()
 
@@ -85,7 +90,7 @@ func initStore() {
 }
 
 func initAuthorize() {
-	err := authorize.Start(stor, path)
+	err := authorize.Start(stor, authkey)
 	if err != nil {
 		logrus.WithError(err).Error("start authorize")
 		os.Exit(1)
@@ -97,7 +102,7 @@ func initDispatcher() {
 }
 
 func initServer() {
-	pathRule, err := regexp.Compile(rule)
+	keyRule, err := regexp.Compile(rule)
 	if err != nil {
 		logrus.WithError(err).Debug("illegal rule")
 		os.Exit(1)
@@ -111,7 +116,7 @@ func initServer() {
 
 	logrus.WithField("addr", addr).Info("listen")
 
-	kvSvc := service.NewKV(stor, pathRule)
+	kvSvc := service.NewKV(stor, keyRule)
 
 	grpcServer := grpc.NewServer()
 	kvpb.RegisterKVServer(grpcServer, kvSvc)

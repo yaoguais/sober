@@ -6,7 +6,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"github.com/yaoguais/sober/client"
-	soberini "github.com/yaoguais/sober/ini"
 	"github.com/yaoguais/sober/kvpb"
 	"google.golang.org/grpc"
 )
@@ -14,7 +13,7 @@ import (
 type GRPC struct {
 	kv   *client.KV
 	root string
-	data map[string]string
+	data string
 	done chan struct{}
 	sync.RWMutex
 }
@@ -53,32 +52,17 @@ func (g *GRPC) Get(key string) (string, error) {
 	g.RLock()
 	defer g.RUnlock()
 
-	if v, ok := g.data[key]; !ok {
-		return "", ErrKeyNotExists
-	} else {
-		return v, nil
-	}
+	return g.data, nil
 }
 
 func (g *GRPC) Set(key, val string) error {
 	return errors.New("forbid set")
 }
 
-func (g *GRPC) JSON() ([]byte, error) {
-	g.RLock()
-	defer g.RUnlock()
-
-	if len(g.data) == 0 {
-		return nil, errors.New("empty data")
-	}
-
-	return soberini.IniToPrettyJSON(g.data)
-}
-
 func (g *GRPC) Watch() (chan struct{}, chan error) {
 	c := make(chan struct{}, 1)
 
-	evtC, errC := g.kv.Watch(g.root)
+	evtC, errC := g.kv.Watch()
 
 	go func() {
 		for {
@@ -115,13 +99,13 @@ func (g *GRPC) Close() error {
 	return nil
 }
 
-func (g *GRPC) load() (map[string]string, error) {
-	m, err := g.kv.Get(g.root)
+func (g *GRPC) load() (string, error) {
+	v, err := g.kv.Get()
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	logrus.WithField("kv", m).Debug("ds load")
+	logrus.WithField("value", v).Debug("ds load")
 
-	return ReplaceToDotKey(m), nil
+	return v, nil
 }

@@ -8,7 +8,6 @@ import (
 
 	"github.com/djherbis/times"
 	"github.com/go-ini/ini"
-	soberini "github.com/yaoguais/sober/ini"
 )
 
 type File struct {
@@ -70,26 +69,6 @@ func (f *File) Get(key string) (string, error) {
 
 func (f *File) Set(key, val string) error {
 	return errors.New("forbid set")
-}
-
-func (f *File) JSON() ([]byte, error) {
-	f.RLock()
-
-	kv := make(map[string]string)
-	for _, section := range f.cfg.Sections() {
-		keys := section.Keys()
-		for _, v := range keys {
-			kv[v.Name()] = v.Value()
-		}
-	}
-
-	f.RUnlock()
-
-	if len(kv) == 0 {
-		return nil, errors.New("empty data")
-	}
-
-	return soberini.IniToPrettyJSON(kv)
 }
 
 func (f *File) Watch() (chan struct{}, chan error) {

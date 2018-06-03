@@ -2,57 +2,68 @@ package client
 
 import (
 	"io"
+	"os"
 
 	"github.com/yaoguais/sober/kvpb"
 	soberetry "github.com/yaoguais/sober/retry"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/metadata"
 )
+
+var (
+	hostname string
+)
+
+func init() {
+	var err error
+	hostname, err = os.Hostname()
+	if err != nil {
+		panic(err)
+	}
+}
 
 type Event kvpb.Event
 
 type KV struct {
 	token  string
-	root   string
+	key    string
 	kvc    kvpb.KVClient
 	cancel bool
 }
 
-func NewKV(token, root string, kvc kvpb.KVClient) *KV {
+func NewKV(token, key string, kvc kvpb.KVClient) *KV {
 	return &KV{
 		token: token,
-		root:  root,
+		key:   key,
 		kvc:   kvc,
 	}
 }
 
-func (o *KV) Get(path string) (map[string]string, error) {
+func (o *KV) Get() (string, error) {
 	req := &kvpb.GetRequest{
-		Token: o.token,
-		Root:  o.root,
+		Key: o.key,
 	}
 
-	resp, err := o.kvc.Get(context.Background(), req)
+	resp, err := o.kvc.Get(o.newContext(), req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return resp.Kv, nil
+	return resp.Value, nil
 }
 
-func (o *KV) Watch(path string) (chan Event, chan error) {
+func (o *KV) Watch() (chan Event, chan error) {
 	c := make(chan Event)
 	errC := make(chan error)
 
-	retry := soberetry.New(1, 60)
-
 	go func() {
 		req := &kvpb.WatchRequest{
-			Token: o.token,
-			Root:  o.root,
+			Key: o.key,
 		}
 
+		retry := soberetry.New(1, 60)
 	try:
-		resp, err := o.kvc.Watch(context.Background(), req)
+		resp, err := o.kvc.Watch(o.newContext(), req)
 		if err != nil {
 			errC <- err
 		} else {
@@ -84,4 +95,12 @@ func (o *KV) Watch(path string) (chan Event, chan error) {
 
 func (o *KV) Cancel() {
 	o.cancel = true
+}
+
+func (o *KV) newContext() context.Context {
+	md := metadata.Pairs(
+		"token", o.token,
+		"hostname", hostname,
+	)
+	return metadata.NewOutgoingContext(context.Background(), md)
 }

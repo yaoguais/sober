@@ -1,26 +1,13 @@
 package store
 
-import (
-	"github.com/yaoguais/sober/kvpb"
-)
-
-type EventType = kvpb.Event_EventType
-
-const (
-	EventTypePut    = kvpb.Event_PUT
-	EventTypeDelete = kvpb.Event_DELETE
-)
-
 type Event struct {
-	Type  EventType
-	Key   string
-	Value string
+	Key string
 }
 
 type Store interface {
-	KV(path string) (map[string]string, error)
-	Set(path string, kv map[string]string) error
-	Watch(path string) (chan Event, chan error)
+	Get(key string) (string, error)
+	Set(key, value string) error
+	Watch(key string) (chan Event, chan error)
 	Close() error
 }
 
@@ -32,25 +19,25 @@ func (c *common) SetRoot(root string) {
 	c.root = root
 }
 
-func (c *common) realPath(path string) string {
-	return c.root + path
+func (c *common) realKey(key string) string {
+	return c.root + key
 }
 
-func (c *common) orignalPath(path string) string {
-	return path[len(c.root):]
+func (c *common) orignalKey(key string) string {
+	return key[len(c.root):]
 }
 
-func (c *common) KV(path string) (map[string]string, error) {
+func (c *common) Get(key string) (string, error) {
 	panic("abstract method")
-	return nil, nil
+	return "", nil
 }
 
-func (c *common) Set(path string, kv map[string]string) error {
+func (c *common) Set(key, value string) error {
 	panic("abstract method")
 	return nil
 }
 
-func (c *common) Watch(path string) (chan Event, chan error) {
+func (c *common) Watch(key string) (chan Event, chan error) {
 	panic("abstract method")
 	return nil, nil
 }

@@ -13,7 +13,7 @@ import (
 var (
 	datasource string
 	output     string
-	root       string
+	key        string
 	token      string
 	debug      bool
 
@@ -22,7 +22,7 @@ var (
 
 func init() {
 	flag.StringVar(&datasource, "datasource", "file://.env.ini", "data source, file://kv.ini, grpc://host:ip")
-	flag.StringVar(&root, "root", "", "root path of keys, like /dev/blog/backend/go")
+	flag.StringVar(&key, "key", "", "key of config value, e.g. /dev/blog/backend/go.json")
 	flag.StringVar(&token, "token", "", "authorize token")
 	flag.StringVar(&output, "output", "", "output, file://.config.json")
 	flag.BoolVar(&debug, "debug", false, "enable debug")
@@ -52,7 +52,7 @@ func initDataSource() {
 	args := ds.Args{
 		DS:    datasource,
 		Token: token,
-		Root:  root,
+		Key:   key,
 	}
 
 	ds, err := ds.Provider(args)
@@ -71,35 +71,35 @@ func initOutput() {
 		os.Exit(1)
 	}
 
-	data, err := dso.JSON()
+	v, err := dso.Get(key)
 	if err != nil {
-		logrus.WithError(err).Error("convert to json")
+		logrus.WithError(err).Error("get data")
 		os.Exit(1)
 	}
 
-	if err := o.Put(data); err != nil {
+	if err := o.Put([]byte(v)); err != nil {
 		logrus.WithError(err).Error("put failed")
 		os.Exit(1)
 	}
 
-	logrus.WithField("data", string(data)).Debug("put data")
+	logrus.WithField("data", v).Debug("put data")
 
 	c, errC := dso.Watch()
 
 	go func() {
 		for range c {
 			logrus.Info("reload config")
-			data, err := dso.JSON()
+			v, err := dso.Get(key)
 			if err != nil {
-				logrus.WithError(err).Error("convert to json")
+				logrus.WithError(err).Error("get data")
 				continue
 			}
 
-			if err := o.Put(data); err != nil {
+			if err := o.Put([]byte(v)); err != nil {
 				logrus.WithError(err).Error("put failed")
 			}
 
-			logrus.WithField("data", string(data)).Debug("put data")
+			logrus.WithField("data", v).Debug("put data")
 		}
 	}()
 
